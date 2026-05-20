@@ -27,8 +27,8 @@
         "intent": "Repay loan",
         "owner": "Aave DAO",
         "fields": {
-          "Amount to repay": "All USDC",
-          "Interest rate mode": "variable",
+          "Amount to repay": "All DAI",
+          "Interest rate mode": "fixed",
           "For debt holder": "0x2Fec9B58d089447d3E5E50578B9F71321713a470"
         }
       }
