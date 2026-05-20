@@ -476,7 +476,7 @@ jobs:
                   const result = r.byImpl[impl];
                   if (!result || result.status === 'pass') continue;
                   const icon = STATUS_ICONS[result.status] || '?';
-                  const summary = `${icon} \`${impl}\` — ${r.entity}/${r.descriptor} · ${r.description}`;
+                  const summary = `${icon} ${r.entity}/${r.descriptor} · ${r.description} · \`${impl}\``;
                   let block = `<details>\n<summary>${summary}</summary>\n\n`;
                   if (result.message) {
                     block += `> ${result.message}\n\n`;
