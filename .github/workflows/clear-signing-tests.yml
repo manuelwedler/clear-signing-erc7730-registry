@@ -381,13 +381,19 @@ jobs:
 
             const STATUS_ICONS = { pass: '✅', fail: '❌', error: '⚠️', skipped: '⏭️' };
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const artifactsRoot = path.join(process.env.GITHUB_WORKSPACE, 'artifacts');
 
             let body = '## Clear Signing Implementation Results\n\n';
 
             let artifactDirs = [];
             try {
-              artifactDirs = fs.readdirSync('artifacts').filter(d => d.startsWith('results__'));
-            } catch (e) {}
+              const entries = fs.readdirSync(artifactsRoot);
+              core.info(`Found ${entries.length} entries under ${artifactsRoot}: ${JSON.stringify(entries)}`);
+              artifactDirs = entries.filter(d => d.startsWith('results__'));
+            } catch (e) {
+              core.warning(`Could not read ${artifactsRoot}: ${e.message}`);
+            }
+            core.info(`Matched ${artifactDirs.length} results__ dirs`);
 
             if (artifactDirs.length === 0) {
               body += '> No implementation test results found.\n';
@@ -396,8 +402,11 @@ jobs:
               const impls = new Set();
 
               for (const dir of artifactDirs) {
-                const filePath = path.join('artifacts', dir, 'results.json');
-                if (!fs.existsSync(filePath)) continue;
+                const filePath = path.join(artifactsRoot, dir, 'results.json');
+                if (!fs.existsSync(filePath)) {
+                  core.warning(`Missing results.json at ${filePath}`);
+                  continue;
+                }
                 let data;
                 try { data = JSON.parse(fs.readFileSync(filePath, 'utf8')); } catch (e) { continue; }
                 const impl = data.implementation || dir;
