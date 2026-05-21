@@ -12,7 +12,7 @@
   },
   "metadata": {
     "owner": "Aave DAO",
-    "info": { "url": "https://aave.com/", "deploymentDate": "2020-11-30T09:25:48Z" },
+    "info": { "url": "https://aave.com", "deploymentDate": "2020-11-30T09:25:48Z" },
     "enums": { "interestRateMode": { "1": "stable", "2": "variable" } },
     "constants": { "max": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" },
     "contractName": "Lending Pool v2"
