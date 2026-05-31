@@ -12,17 +12,171 @@ Usage:
 
 import argparse
 import json
+<<<<<<< Updated upstream
 import re
 import sys
 import traceback
 from pathlib import Path
 
 from eth_utils import keccak
+=======
+import os
+import re
+import sys
+import traceback
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+from eth_utils import keccak, to_checksum_address
+>>>>>>> Stashed changes
 from eth_abi import decode as abi_decode
 import rlp
 
 
 # ---------------------------------------------------------------------------
+<<<<<<< Updated upstream
+=======
+# Etherscan token metadata lookup (cached on disk)
+# ---------------------------------------------------------------------------
+
+_TOKEN_CACHE_PATH = Path(__file__).resolve().parent / ".token-cache.json"
+_TOKEN_CACHE = None
+
+
+def _load_token_cache():
+    global _TOKEN_CACHE
+    if _TOKEN_CACHE is not None:
+        return _TOKEN_CACHE
+    if _TOKEN_CACHE_PATH.exists():
+        try:
+            _TOKEN_CACHE = json.loads(_TOKEN_CACHE_PATH.read_text())
+        except Exception:
+            _TOKEN_CACHE = {}
+    else:
+        _TOKEN_CACHE = {}
+    return _TOKEN_CACHE
+
+
+def _save_token_cache():
+    if _TOKEN_CACHE is None:
+        return
+    _TOKEN_CACHE_PATH.write_text(json.dumps(_TOKEN_CACHE, indent=2, sort_keys=True))
+
+
+_ETHERSCAN_API_KEY = "QPU28Q4AHZZ4HGFYWCMMTURT7WWSI8ZH7P"  # internal-only; this script is gitignored
+
+
+def _etherscan_eth_call(chain_id, to, data):
+    """Wrap eth_call via Etherscan's V2 multichain proxy. Returns hex result
+    or None on error."""
+    api_key = _ETHERSCAN_API_KEY or os.environ.get("ETHERSCAN_API_KEY")
+    if not api_key:
+        return None
+    params = {
+        "chainid": str(chain_id),
+        "module": "proxy",
+        "action": "eth_call",
+        "to": to,
+        "data": data,
+        "tag": "latest",
+        "apikey": api_key,
+    }
+    url = "https://api.etherscan.io/v2/api?" + urllib.parse.urlencode(params)
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            body = json.loads(resp.read().decode())
+    except Exception:
+        return None
+    result = body.get("result")
+    if isinstance(result, str) and result.startswith("0x"):
+        return result
+    return None
+
+
+def _decode_abi_string(hex_str):
+    """Decode an ABI-encoded `string` (or fall back to a bytes32 of ASCII
+    with trailing zeros — some legacy tokens like MKR return bytes32)."""
+    if not hex_str or not hex_str.startswith("0x"):
+        return None
+    h = hex_str[2:]
+    # Standard string return: offset (32B) + length (32B) + padded data
+    if len(h) >= 128:
+        try:
+            offset = int(h[:64], 16)
+            length = int(h[64:128], 16)
+            if offset == 32 and length > 0 and 128 + length * 2 <= len(h):
+                data = bytes.fromhex(h[128:128 + length * 2])
+                return data.decode("utf-8", errors="replace")
+        except Exception:
+            pass
+    # bytes32 fallback (e.g. MKR): 64 hex chars of ASCII + nulls
+    if len(h) == 64:
+        try:
+            return bytes.fromhex(h).rstrip(b"\x00").decode("utf-8", errors="replace")
+        except Exception:
+            pass
+    return None
+
+
+def _decode_uint(hex_str):
+    if not hex_str or not hex_str.startswith("0x") or len(hex_str) < 3:
+        return None
+    try:
+        return int(hex_str[2:], 16)
+    except ValueError:
+        return None
+
+
+_NATIVE_SENTINELS = {
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "0x0000000000000000000000000000000000000000",
+}
+
+# Tokens on chains where the free Etherscan plan can't reach (e.g. BSC).
+# Keyed by "<chainId>:<address-lower>".
+_TOKEN_OVERRIDES = {
+    "56:0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d": {"symbol": "BUSD", "decimals": 18, "name": "BUSD Token"},
+    "56:0x55d398326f99059ff775485246999027b3197955": {"symbol": "USDT", "decimals": 18, "name": "Tether USD"},
+}
+
+
+def lookup_token_metadata(address, chain_id):
+    """Return {symbol, decimals, name} for the ERC-20 at `address` on
+    `chain_id`. Uses a JSON cache on disk; falls back to TODO stub if the
+    Etherscan call fails or no API key is set."""
+    address = address.lower()
+    if address in _NATIVE_SENTINELS:
+        # DEX routers use these as "native chain currency" placeholders.
+        # Chain 1/Arbitrum/etc all use ETH; override per chain when needed.
+        return {"symbol": "ETH", "decimals": 18, "name": "Ether"}
+    key = f"{chain_id}:{address}"
+    if key in _TOKEN_OVERRIDES:
+        return _TOKEN_OVERRIDES[key]
+    cache = _load_token_cache()
+    if key in cache:
+        return cache[key]
+
+    symbol = _decode_abi_string(_etherscan_eth_call(chain_id, address, "0x95d89b41"))
+    decimals = _decode_uint(_etherscan_eth_call(chain_id, address, "0x313ce567"))
+    name = _decode_abi_string(_etherscan_eth_call(chain_id, address, "0x06fdde03"))
+
+    if symbol is None and decimals is None and name is None:
+        # Avoid caching a complete failure — let the next run retry.
+        return {"symbol": "TODO", "decimals": 0, "name": "TODO"}
+
+    meta = {
+        "symbol": symbol or "TODO",
+        "decimals": decimals if decimals is not None else 0,
+        "name": name or "TODO",
+    }
+    cache[key] = meta
+    _save_token_cache()
+    return meta
+
+
+# ---------------------------------------------------------------------------
+>>>>>>> Stashed changes
 # Transaction decoding
 # ---------------------------------------------------------------------------
 
@@ -48,8 +202,25 @@ def decode_signed_tx(hex_str):
         }
     else:  # legacy
         d = rlp.decode(raw)
+<<<<<<< Updated upstream
         return {
             "chainId": None,
+=======
+        v = int.from_bytes(d[6], "big") if len(d) > 6 and d[6] else 0
+        r = int.from_bytes(d[7], "big") if len(d) > 7 and d[7] else 0
+        s = int.from_bytes(d[8], "big") if len(d) > 8 and d[8] else 0
+        if v >= 37 and (r or s):
+            # EIP-155 signed: v = chainId*2 + 35 + parity
+            chain_id = (v - 35) // 2
+        elif r == 0 and s == 0 and v >= 1:
+            # EIP-155 pre-signing encoding: [..., chainId, 0, 0]
+            chain_id = v
+        else:
+            # Pre-EIP-155 signed (v=27/28), no chainId in tx
+            chain_id = None
+        return {
+            "chainId": chain_id,
+>>>>>>> Stashed changes
             "to": "0x" + d[3].hex(),
             "value": int.from_bytes(d[4], "big") if d[4] else 0,
             "data": "0x" + d[5].hex(),
@@ -164,14 +335,30 @@ COMMON_LABEL_STARTS = {
 
 
 def merge_ocr_fragments(texts):
+<<<<<<< Updated upstream
     """Combine ['R', 'eview…'] → ['Review…']."""
+=======
+    """Combine word fragments split across Ledger screens.
+
+    The signature is a short capitalised prefix (1-3 chars) followed by an
+    entry that starts with a lowercase letter. Examples:
+      ['R', 'eview transaction to Swap'] -> ['Review transaction to Swap']
+      ['To', 'kenID 0']                  -> ['TokenID 0']
+    """
+>>>>>>> Stashed changes
     out, i = [], 0
     while i < len(texts):
         if (
             i + 1 < len(texts)
+<<<<<<< Updated upstream
             and len(texts[i]) == 1
             and texts[i].isalpha()
             and texts[i].isupper()
+=======
+            and 1 <= len(texts[i]) <= 3
+            and texts[i].isalpha()
+            and texts[i][0].isupper()
+>>>>>>> Stashed changes
             and texts[i + 1]
             and texts[i + 1][0].islower()
         ):
@@ -264,6 +451,7 @@ def merge_digit_grouping(v):
     parts = v.split()
     if len(parts) < 2:
         return v
+<<<<<<< Updated upstream
     # Walk: collect a run of digit-only tokens following an initial decimal number.
     if not re.fullmatch(r"\d+\.\d+", parts[0]):
         return v
@@ -273,6 +461,25 @@ def merge_digit_grouping(v):
         merged += parts[i]
         i += 1
     return " ".join([merged] + parts[i:])
+=======
+    # Walk every position; merge any run of digit groups (including integer-only
+    # sequences like '100000000000000000 0' -> '1000000000000000000') where the
+    # first token is a decimal/integer and the followers are pure digits.
+    out = []
+    i = 0
+    while i < len(parts):
+        if re.fullmatch(r"\d+(\.\d+)?", parts[i]):
+            j = i + 1
+            while j < len(parts) and parts[j].isdigit():
+                j += 1
+            if j > i + 1:
+                out.append("".join(parts[i:j]))
+                i = j
+                continue
+        out.append(parts[i])
+        i += 1
+    return " ".join(out)
+>>>>>>> Stashed changes
 
 
 def clean_value(v):
@@ -461,6 +668,20 @@ def parse_expected(expected_texts, descriptor_format, descriptor_owner):
         combined = " ".join(after)
         fields = parse_label_value_chunks(combined, known_labels=None)
 
+<<<<<<< Updated upstream
+=======
+    # Strip leading label-name from values — Ledger sometimes duplicates the
+    # label across the screen header and the value line (visible in OCR as
+    # 'TokenID', 'To', 'kenID 0' → after merge the value entry has the label
+    # repeated at its start).
+    for lbl in list(fields.keys()):
+        v = fields[lbl]
+        if isinstance(v, str) and v.startswith(lbl + " "):
+            fields[lbl] = v[len(lbl) + 1 :].strip()
+        elif isinstance(v, str) and v == lbl:
+            fields[lbl] = ""
+
+>>>>>>> Stashed changes
     return {"intent": intent, "owner": owner, "fields": fields}
 
 
@@ -471,7 +692,116 @@ def parse_expected(expected_texts, descriptor_format, descriptor_owner):
 ENS_RE = re.compile(r"^[A-Za-z0-9_-]+\.eth$")
 
 
+<<<<<<< Updated upstream
 def extract_data_provider(decoded_tx, descriptor_format, parsed_expected):
+=======
+def _parse_arg_structured(s):
+    """Like `_parse_arg` but returns a structured shape that keeps inner
+    tuple field names. Tuple shape: {kind: 'tuple', fields: [(shape, name)]}.
+    Primitive shape: {kind: 'primitive', type: '<canonical>'}.
+    Returns (shape, name)."""
+    s = s.strip()
+    if not s:
+        return ({"kind": "primitive", "type": ""}, None)
+    if s.startswith("("):
+        depth = 0
+        for i, ch in enumerate(s):
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    inner = s[1:i]
+                    fields = [_parse_arg_structured(p) for p in _split_top_commas(inner)]
+                    rest = s[i + 1 :].strip()
+                    arr = ""
+                    m = re.match(r"((?:\[\d*\])+)", rest)
+                    if m:
+                        arr = m.group(1)
+                        rest = rest[len(arr) :].strip()
+                    return ({"kind": "tuple", "fields": fields, "array": arr}, rest or None)
+        return ({"kind": "primitive", "type": s}, None)
+    toks = _WS_SPLIT.split(s)
+    if len(toks) == 1:
+        return ({"kind": "primitive", "type": toks[0]}, None)
+    return ({"kind": "primitive", "type": toks[0]}, toks[-1])
+
+
+def _resolve_path_in_args(path, params_structured, decoded_args):
+    """Resolve a dotted path like 'desc.srcToken' or 'srcToken.[-20:]'
+    against decoded args. Path parts can be a tuple field name OR a slice
+    like '[-20:]' / '[0:20]' to take a sub-range of bytes (used by
+    descriptors that store an address inside a longer bytes blob).
+    Returns the value or None."""
+    parts = [p for p in path.split(".") if p]
+    if not parts:
+        return None
+    # Top-level: find by name
+    top = parts[0]
+    cur_value = None
+    cur_shape = None
+    for i, (shape, name) in enumerate(params_structured):
+        if name == top:
+            cur_value = decoded_args[i]
+            cur_shape = shape
+            break
+    if cur_value is None:
+        return None
+    for part in parts[1:]:
+        # Slice — works on bytes, or on int values that 1inch packs into
+        # uint256s for addresses (e.g. `token.[-20:]` on a uint256 arg).
+        m = re.fullmatch(r"\[(-?\d+):(-?\d+)?\]", part)
+        if m:
+            start = int(m.group(1))
+            end = int(m.group(2)) if m.group(2) else None
+            if isinstance(cur_value, int):
+                cur_value = cur_value.to_bytes(32, "big")
+            if isinstance(cur_value, (bytes, bytearray)):
+                cur_value = bytes(cur_value)[start:end]
+                cur_shape = {"kind": "primitive", "type": "bytes"}
+                continue
+            return None
+        # Tuple field by name
+        if cur_shape and cur_shape.get("kind") == "tuple":
+            for j, (child_shape, child_name) in enumerate(cur_shape["fields"]):
+                if child_name == part:
+                    cur_value = cur_value[j]
+                    cur_shape = child_shape
+                    break
+            else:
+                return None
+            continue
+        return None
+    return cur_value
+
+
+def _as_address_hex(value):
+    """Normalize a decoded address-like value to an EIP-55 checksummed
+    0x… string. Accepts Python str (already an address), bytes (length
+    20 or 32 with the address in the low 20 bytes), or int — 1inch packs
+    addresses into uint256 args so we take the low 160 bits.
+
+    Returning EIP-55 is what the runners produce; if expected values use
+    lowercase, the test fails on case alone."""
+    raw = None
+    if isinstance(value, str) and re.fullmatch(r"0x[0-9a-fA-F]{40}", value):
+        raw = value
+    elif isinstance(value, (bytes, bytearray)):
+        b = bytes(value)
+        if len(b) >= 20:
+            raw = "0x" + b[-20:].hex()
+    elif isinstance(value, int):
+        raw = "0x" + (value & ((1 << 160) - 1)).to_bytes(20, "big").hex()
+    if raw is None:
+        return None
+    try:
+        return to_checksum_address(raw)
+    except Exception:
+        return raw
+
+
+def extract_data_provider(decoded_tx, descriptor_format, parsed_expected, fallback_chain_id=1):
+>>>>>>> Stashed changes
     """Best-effort dataProvider: for each addressName field, if the parsed
     expected value is an ENS name, add it to addressNames.
     """
@@ -480,15 +810,24 @@ def extract_data_provider(decoded_tx, descriptor_format, parsed_expected):
     sig = descriptor_format.get("_signature")
     if not sig:
         return None
+<<<<<<< Updated upstream
     name, params = parse_signature(sig)
     if not params:
         return None
     types = [t for t, _ in params]
     arg_names = [n for _, n in params]
+=======
+    _, params_structured = _parse_signature_structured(sig)
+    if not params_structured:
+        return None
+    # Canonical (flat) types for abi_decode
+    flat_types = [t for t, _ in parse_signature(sig)[1]]
+>>>>>>> Stashed changes
     calldata = decoded_tx["data"]
     if calldata.startswith("0x"):
         calldata = calldata[2:]
     try:
+<<<<<<< Updated upstream
         decoded_args = abi_decode(types, bytes.fromhex(calldata[8:]))
     except Exception:
         return None
@@ -498,12 +837,29 @@ def extract_data_provider(decoded_tx, descriptor_format, parsed_expected):
     dp_tokens = {}
     fields_by_label = parsed_expected.get("fields", {})
 
+=======
+        decoded_args = abi_decode(flat_types, bytes.fromhex(calldata[8:]))
+    except Exception:
+        return None
+
+    chain_id = decoded_tx.get("chainId") or fallback_chain_id
+    dp_address_names = {}
+    dp_ens_names = {}
+    dp_tokens = {}
+    fields_by_label = parsed_expected.get("fields", {})
+
+    def _record_token(addr_hex):
+        if addr_hex and addr_hex.lower() not in dp_tokens:
+            dp_tokens[addr_hex.lower()] = lookup_token_metadata(addr_hex, chain_id)
+
+>>>>>>> Stashed changes
     for field in descriptor_format.get("fields", []) or []:
         if field.get("visible", "always") == "never":
             continue
         fmt = field.get("format")
         label = field.get("label")
         path = field.get("path", "")
+<<<<<<< Updated upstream
         if fmt == "addressName":
             addr_value = args_by_name.get(path)
             if addr_value is None:
@@ -532,15 +888,264 @@ def extract_data_provider(decoded_tx, descriptor_format, parsed_expected):
                 "decimals": 0,
                 "name": "TODO",
             }
+=======
+        params_obj = field.get("params") or {}
+
+        if fmt == "addressName":
+            addr_value = _resolve_path_in_args(path, params_structured, decoded_args)
+            addr_hex = _as_address_hex(addr_value)
+            if not addr_hex:
+                continue
+            displayed = fields_by_label.get(label, "")
+            # Only emit a name entry when the v1 Ledger output rendered an
+            # actual name — not when it just showed the raw 0x address.
+            # ENS names go in `ensNames` (kept separate from local contact
+            # labels in `addressNames` since descriptor `sources` filters
+            # are evaluated against the matching map only).
+            if isinstance(displayed, str) and displayed.strip():
+                if ENS_RE.match(displayed):
+                    dp_ens_names[addr_hex.lower()] = displayed
+                elif not re.match(r"^0x[0-9a-fA-F]{40}$", displayed) and displayed not in ("TODO",):
+                    dp_address_names[addr_hex.lower()] = displayed
+        elif fmt == "tokenAmount":
+            token_path = params_obj.get("tokenPath")
+            if not token_path:
+                continue
+            token_addr_val = _resolve_path_in_args(token_path, params_structured, decoded_args)
+            token_hex = _as_address_hex(token_addr_val)
+            _record_token(token_hex)
+>>>>>>> Stashed changes
 
     dp = {}
     if dp_tokens:
         dp["tokens"] = dp_tokens
     if dp_address_names:
         dp["addressNames"] = dp_address_names
+<<<<<<< Updated upstream
     return dp or None
 
 
+=======
+    if dp_ens_names:
+        dp["ensNames"] = dp_ens_names
+    return dp or None
+
+
+def _parse_signature_structured(sig_with_names):
+    paren = sig_with_names.find("(")
+    name = sig_with_names[:paren]
+    inside = sig_with_names[paren + 1 : sig_with_names.rfind(")")]
+    if not inside.strip():
+        return name, []
+    return name, [_parse_arg_structured(p) for p in _split_top_commas(inside)]
+
+
+def _format_token_amount(raw_amount, decimals, symbol):
+    """Render a tokenAmount field as the runners do: integer-part + '.' +
+    fractional-part trimmed of trailing zeros, followed by ' SYMBOL'."""
+    if decimals <= 0:
+        return f"{raw_amount} {symbol}"
+    s = str(raw_amount).rjust(decimals + 1, "0")
+    integer = s[:-decimals].lstrip("0") or "0"
+    fractional = s[-decimals:].rstrip("0")
+    body = integer if not fractional else f"{integer}.{fractional}"
+    return f"{body} {symbol}"
+
+
+def _resolve_path_in_message(path, message):
+    """Resolve a dotted path against an EIP-712 message dict. A leading
+    `@.` (some descriptors use this to mean "the contract / typed-data
+    container") is stripped — for our purposes the rest of the path is a
+    plain field name in the message."""
+    if not path:
+        return None
+    if path.startswith("@."):
+        path = path[2:]
+    parts = [p for p in path.split(".") if p]
+    cur = message
+    for part in parts:
+        if isinstance(cur, dict) and part in cur:
+            cur = cur[part]
+        else:
+            return None
+    return cur
+
+
+def extract_data_provider_eip712(data, descriptor_format, parsed_expected, fallback_chain_id=1):
+    """EIP-712 counterpart of `extract_data_provider`: walks the message
+    dict instead of decoded calldata to populate dataProvider entries for
+    every tokenAmount.tokenPath and addressName field."""
+    if not descriptor_format or not data:
+        return None
+    message = data.get("message") or {}
+    domain = data.get("domain") or {}
+    chain_id = domain.get("chainId") or fallback_chain_id
+
+    dp_address_names = {}
+    dp_ens_names = {}
+    dp_tokens = {}
+    fields_by_label = parsed_expected.get("fields", {})
+
+    def _record_token(addr_hex):
+        if addr_hex and addr_hex.lower() not in dp_tokens:
+            dp_tokens[addr_hex.lower()] = lookup_token_metadata(addr_hex, chain_id)
+
+    for field in descriptor_format.get("fields", []) or []:
+        if field.get("visible", "always") == "never":
+            continue
+        fmt = field.get("format")
+        label = field.get("label")
+        path = field.get("path", "")
+        params_obj = field.get("params") or {}
+
+        if fmt == "tokenAmount":
+            token_path = params_obj.get("tokenPath")
+            if token_path:
+                token_hex = _as_address_hex(_resolve_path_in_message(token_path, message))
+                _record_token(token_hex)
+            elif isinstance(params_obj.get("token"), str):
+                _record_token(params_obj["token"])
+        elif fmt == "addressName":
+            addr_value = _resolve_path_in_message(path, message)
+            addr_hex = _as_address_hex(addr_value)
+            if not addr_hex:
+                continue
+            displayed = fields_by_label.get(label, "")
+            if isinstance(displayed, str) and displayed.strip():
+                if ENS_RE.match(displayed):
+                    dp_ens_names[addr_hex.lower()] = displayed
+                elif not re.match(r"^0x[0-9a-fA-F]{40}$", displayed) and displayed not in ("TODO",):
+                    dp_address_names[addr_hex.lower()] = displayed
+
+    dp = {}
+    if dp_tokens:
+        dp["tokens"] = dp_tokens
+    if dp_address_names:
+        dp["addressNames"] = dp_address_names
+    if dp_ens_names:
+        dp["ensNames"] = dp_ens_names
+    return dp or None
+
+
+def fill_expected_from_eip712(expected, data, descriptor_format, dp_tokens):
+    """EIP-712 counterpart of `fill_expected_from_decoded`. Replaces
+    placeholder values in `expected.fields` for tokenAmount/addressName
+    fields using the message data + the resolved token metadata."""
+    if not descriptor_format or not data:
+        return
+    message = data.get("message") or {}
+    fields = expected.get("fields") or {}
+
+    def _is_placeholder(v):
+        return v in ("TODO", None) or (isinstance(v, str) and ("???" in v or v.strip() == ""))
+
+    for field in descriptor_format.get("fields", []) or []:
+        if field.get("visible", "always") == "never":
+            continue
+        label = field.get("label")
+        if not label:
+            continue
+        current = fields.get(label)
+        if not _is_placeholder(current):
+            continue
+        fmt = field.get("format")
+        path = field.get("path", "")
+        params_obj = field.get("params") or {}
+
+        if fmt == "tokenAmount":
+            amount_val = _resolve_path_in_message(path, message)
+            if isinstance(amount_val, str):
+                try:
+                    amount_val = int(amount_val)
+                except ValueError:
+                    continue
+            token_meta = None
+            if params_obj.get("tokenPath"):
+                token_addr = _as_address_hex(_resolve_path_in_message(params_obj["tokenPath"], message))
+                if token_addr:
+                    token_meta = dp_tokens.get(token_addr.lower())
+            elif isinstance(params_obj.get("token"), str):
+                token_meta = dp_tokens.get(params_obj["token"].lower())
+            if isinstance(amount_val, int) and token_meta and token_meta.get("symbol", "TODO") != "TODO":
+                fields[label] = _format_token_amount(
+                    amount_val, token_meta.get("decimals") or 0, token_meta["symbol"]
+                )
+        elif fmt == "addressName":
+            addr_val = _resolve_path_in_message(path, message)
+            addr_hex = _as_address_hex(addr_val)
+            if addr_hex:
+                fields[label] = addr_hex
+
+    expected["fields"] = fields
+
+
+def fill_expected_from_decoded(expected, decoded_tx, descriptor_format, dp_tokens):
+    """After parse_expected ran on Ledger OCR and dp_tokens was populated
+    from rawTx, replace any `???`/`TODO` values for tokenAmount and
+    addressName fields with values computed from the decoded args. Only
+    overwrites placeholder values; leaves a real OCR-derived value alone.
+    """
+    if not descriptor_format:
+        return
+    sig = descriptor_format.get("_signature")
+    if not sig:
+        return
+    _, params_structured = _parse_signature_structured(sig)
+    if not params_structured:
+        return
+    flat_types = [t for t, _ in parse_signature(sig)[1]]
+    calldata = decoded_tx["data"]
+    if calldata.startswith("0x"):
+        calldata = calldata[2:]
+    try:
+        decoded_args = abi_decode(flat_types, bytes.fromhex(calldata[8:]))
+    except Exception:
+        return
+
+    fields = expected.get("fields") or {}
+
+    def _is_placeholder(v):
+        return v in ("TODO", None) or (isinstance(v, str) and ("???" in v or v.strip() == ""))
+
+    for field in descriptor_format.get("fields", []) or []:
+        if field.get("visible", "always") == "never":
+            continue
+        label = field.get("label")
+        if not label:
+            continue
+        current = fields.get(label)
+        if not _is_placeholder(current):
+            continue
+        fmt = field.get("format")
+        path = field.get("path", "")
+        params_obj = field.get("params") or {}
+
+        if fmt == "tokenAmount":
+            amount_val = _resolve_path_in_args(path, params_structured, decoded_args)
+            token_path = params_obj.get("tokenPath")
+            token_meta = None
+            if token_path:
+                token_addr = _as_address_hex(
+                    _resolve_path_in_args(token_path, params_structured, decoded_args)
+                )
+                if token_addr:
+                    token_meta = dp_tokens.get(token_addr.lower())
+            if isinstance(amount_val, int) and token_meta and token_meta.get("symbol", "TODO") != "TODO":
+                fields[label] = _format_token_amount(
+                    amount_val, token_meta.get("decimals") or 0, token_meta["symbol"]
+                )
+        elif fmt == "addressName":
+            addr_val = _resolve_path_in_args(path, params_structured, decoded_args)
+            addr_hex = _as_address_hex(addr_val)
+            if addr_hex:
+                # Leave as 0x address; runner may resolve to a name via
+                # dataProvider, but the raw hex is the safe fallback.
+                fields[label] = addr_hex
+
+    expected["fields"] = fields
+
+
+>>>>>>> Stashed changes
 # ---------------------------------------------------------------------------
 # Migration orchestration
 # ---------------------------------------------------------------------------
@@ -593,6 +1198,61 @@ def count_todos(expected):
     return n
 
 
+<<<<<<< Updated upstream
+=======
+def _first_deployment_chain_id(descriptor):
+    """Pick the first deployment chainId from either context.contract or
+    context.eip712 — used as a default when querying Etherscan for static
+    token metadata."""
+    ctx = descriptor.get("context") or {}
+    for key in ("contract", "eip712"):
+        deployments = ((ctx.get(key) or {}).get("deployments")) or []
+        for dep in deployments:
+            cid = (dep or {}).get("chainId")
+            if cid:
+                return int(cid)
+    return None
+
+
+def _inline_field_refs(descriptor):
+    """In-place: resolve any `$ref` on display.formats.*.fields[] entries
+    against display.definitions and inline the result.
+
+    Descriptors like 1inch reuse field shapes via
+        { "path": "x", "$ref": "$.display.definitions.sendAmount", "params": {...} }
+    where `definitions` lives in a `common-*.json` include. Without this
+    pass the field looks like it has no label/format and the rest of the
+    migration pipeline silently drops it. Local fields override the
+    referenced definition; `params` is shallow-merged with local winning.
+    """
+    formats = (descriptor.get("display") or {}).get("formats") or {}
+    for fmt_def in formats.values():
+        fields = (fmt_def or {}).get("fields")
+        if not isinstance(fields, list):
+            continue
+        for i, field in enumerate(fields):
+            if not isinstance(field, dict):
+                continue
+            ref = field.get("$ref")
+            if not ref:
+                continue
+            target = _resolve_descriptor_ref(ref, descriptor)
+            if not isinstance(target, dict):
+                continue
+            merged = dict(target)
+            merged_params = dict(target.get("params") or {})
+            merged_params.update(field.get("params") or {})
+            for k, v in field.items():
+                if k in ("$ref", "params"):
+                    continue
+                merged[k] = v
+            if merged_params:
+                merged["params"] = merged_params
+            fields[i] = merged
+    return descriptor
+
+
+>>>>>>> Stashed changes
 def load_descriptor_with_includes(descriptor_path, _seen=None):
     """Load a descriptor and recursively merge its `includes`. The including
     file wins on conflicts; `display.formats` and `metadata` are merged.
@@ -641,6 +1301,7 @@ def load_descriptor_with_includes(descriptor_path, _seen=None):
     return doc
 
 
+<<<<<<< Updated upstream
 def migrate_file(tests_v1_path, testsv2_path, descriptor_path):
     with open(tests_v1_path) as f:
         v1 = json.load(f)
@@ -649,6 +1310,114 @@ def migrate_file(tests_v1_path, testsv2_path, descriptor_path):
     owner = descriptor.get("metadata", {}).get("owner")
 
     dp_tokens, dp_address_names = {}, {}
+=======
+_ADDR_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
+
+
+def _resolve_descriptor_ref(ref, descriptor):
+    """Resolve a `$.path.to.value` reference inside the descriptor."""
+    if not isinstance(ref, str) or not ref.startswith("$."):
+        return ref
+    cur = descriptor
+    for part in ref[2:].split("."):
+        if isinstance(cur, dict) and part in cur:
+            cur = cur[part]
+        else:
+            return None
+    return cur
+
+
+def _walk_format_fields(formats):
+    for fmt_def in (formats or {}).values():
+        for field in (fmt_def or {}).get("fields", []) or []:
+            yield field
+
+
+def audit_data_provider_needs(descriptor):
+    """Scan the descriptor for formats that rely on runtime data the runner
+    can't synthesize on its own. Returns (static_token_addrs, warnings).
+
+    - `static_token_addrs`: lowercase addresses pulled from `tokenAmount`
+      fields whose `params.token` resolves to a literal address (directly or
+      via `$.metadata.constants.X`). These should appear in
+      `dataProvider.tokens` for the runner to format the amount.
+
+    - `warnings`: human-readable notes about constructs the migration
+      script can't auto-fill — token lookups that depend on the tx, unit
+      formats whose `base` is a templated constant, addressName fields
+      typed as 'token', etc. The caller prints these so the human knows
+      which dataProvider entries still need filling in by hand.
+    """
+    static_token_addrs = set()
+    warnings = []
+    formats = (descriptor.get("display") or {}).get("formats") or {}
+
+    for field in _walk_format_fields(formats):
+        if field.get("visible") == "never":
+            continue
+        fmt = field.get("format")
+        params = field.get("params") or {}
+        label = field.get("label") or field.get("path") or "<?>"
+
+        if fmt == "tokenAmount":
+            tok = params.get("token")
+            if isinstance(tok, str):
+                resolved = _resolve_descriptor_ref(tok, descriptor) if tok.startswith("$.") else tok
+                if isinstance(resolved, str) and _ADDR_RE.match(resolved):
+                    static_token_addrs.add(resolved.lower())
+                else:
+                    warnings.append(
+                        f"tokenAmount field '{label}': params.token={tok!r} "
+                        "did not resolve to an address — fill dataProvider.tokens manually"
+                    )
+            elif params.get("tokenPath"):
+                warnings.append(
+                    f"tokenAmount field '{label}': uses dynamic tokenPath="
+                    f"{params['tokenPath']!r} — add the actual token address(es) "
+                    "from the rawTx to dataProvider.tokens"
+                )
+
+        elif fmt == "addressName":
+            warnings.append(
+                f"addressName field '{label}': runner resolves the address "
+                "to a display name — if the expected value is a name (e.g. "
+                "'USD Coin', 'yohoming.eth'), add an entry to "
+                "dataProvider.addressNames"
+            )
+
+        elif fmt == "unit":
+            base = params.get("base")
+            if isinstance(base, str) and base.startswith("$."):
+                warnings.append(
+                    f"unit field '{label}': base={base!r} is a templated "
+                    "constant — runners may not resolve it; verify expected value"
+                )
+
+    # Dedupe while keeping order so identical fields across multiple
+    # function formats don't double-print.
+    seen = set()
+    unique_warnings = []
+    for w in warnings:
+        if w in seen:
+            continue
+        seen.add(w)
+        unique_warnings.append(w)
+    return static_token_addrs, unique_warnings
+
+
+def migrate_file(tests_v1_path, testsv2_path, descriptor_path):
+    with open(tests_v1_path) as f:
+        v1 = json.load(f)
+    descriptor = _inline_field_refs(load_descriptor_with_includes(descriptor_path))
+
+    owner = descriptor.get("metadata", {}).get("owner")
+
+    static_token_addrs, dp_warnings = audit_data_provider_needs(descriptor)
+    static_chain_id = _first_deployment_chain_id(descriptor) or 1
+    dp_tokens, dp_address_names, dp_ens_names = {}, {}, {}
+    for addr in static_token_addrs:
+        dp_tokens.setdefault(addr, lookup_token_metadata(addr, static_chain_id))
+>>>>>>> Stashed changes
     new_tests = []
     file_todo_total = 0
 
@@ -664,12 +1433,22 @@ def migrate_file(tests_v1_path, testsv2_path, descriptor_path):
                 _, fmt = find_format_calldata(descriptor, decoded["data"])
                 expected = parse_expected(t.get("expectedTexts", []), fmt, owner)
                 new_t["expected"] = expected
+<<<<<<< Updated upstream
                 dp = extract_data_provider(decoded, fmt, expected)
+=======
+                dp = extract_data_provider(decoded, fmt, expected, fallback_chain_id=static_chain_id)
+>>>>>>> Stashed changes
                 if dp:
                     for addr, info in (dp.get("tokens") or {}).items():
                         dp_tokens.setdefault(addr, info)
                     for addr, n in (dp.get("addressNames") or {}).items():
                         dp_address_names.setdefault(addr, n)
+<<<<<<< Updated upstream
+=======
+                    for addr, n in (dp.get("ensNames") or {}).items():
+                        dp_ens_names.setdefault(addr, n)
+                fill_expected_from_decoded(expected, decoded, fmt, dp_tokens)
+>>>>>>> Stashed changes
                 file_todo_total += count_todos(expected)
             except Exception as e:
                 print(f"      WARN: decode/parse failed for one case: {e}")
@@ -683,6 +1462,18 @@ def migrate_file(tests_v1_path, testsv2_path, descriptor_path):
             _, fmt = find_format_eip712(descriptor, primary_type)
             expected = parse_expected(t.get("expectedTexts", []), fmt, owner)
             new_t["expected"] = expected
+<<<<<<< Updated upstream
+=======
+            dp = extract_data_provider_eip712(t.get("data"), fmt, expected, fallback_chain_id=static_chain_id)
+            if dp:
+                for addr, info in (dp.get("tokens") or {}).items():
+                    dp_tokens.setdefault(addr, info)
+                for addr, n in (dp.get("addressNames") or {}).items():
+                    dp_address_names.setdefault(addr, n)
+                for addr, n in (dp.get("ensNames") or {}).items():
+                    dp_ens_names.setdefault(addr, n)
+            fill_expected_from_eip712(expected, t.get("data"), fmt, dp_tokens)
+>>>>>>> Stashed changes
             file_todo_total += count_todos(expected)
 
         new_tests.append(order_keys(new_t))
@@ -697,6 +1488,11 @@ def migrate_file(tests_v1_path, testsv2_path, descriptor_path):
         dp["tokens"] = dp_tokens
     if dp_address_names:
         dp["addressNames"] = dp_address_names
+<<<<<<< Updated upstream
+=======
+    if dp_ens_names:
+        dp["ensNames"] = dp_ens_names
+>>>>>>> Stashed changes
     if dp:
         output["dataProvider"] = dp
     output["tests"] = new_tests
@@ -706,7 +1502,11 @@ def migrate_file(tests_v1_path, testsv2_path, descriptor_path):
         json.dump(output, f, indent=2)
         f.write("\n")
 
+<<<<<<< Updated upstream
     return file_todo_total
+=======
+    return file_todo_total, dp_warnings
+>>>>>>> Stashed changes
 
 
 def main():
@@ -746,9 +1546,17 @@ def main():
             print(f"  SKIP: {testsv2_path} already exists (use --overwrite)")
             continue
         try:
+<<<<<<< Updated upstream
             todos = migrate_file(path, testsv2_path, descriptor_path)
             marker = "" if todos == 0 else f"  ⚠️  {todos} TODO(s)"
             print(f"  {path}{marker}")
+=======
+            todos, dp_warnings = migrate_file(path, testsv2_path, descriptor_path)
+            marker = "" if todos == 0 else f"  ⚠️  {todos} TODO(s)"
+            print(f"  {path}{marker}")
+            for w in dp_warnings:
+                print(f"      dataProvider: {w}")
+>>>>>>> Stashed changes
             total_todos += todos
         except Exception:
             print(f"  ERROR migrating {path}:")
