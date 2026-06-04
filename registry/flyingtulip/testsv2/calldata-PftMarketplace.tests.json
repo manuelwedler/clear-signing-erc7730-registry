@@ -24,7 +24,7 @@
         "fields": [
           {
             "label": "Position",
-            "value": "Collection Name: pFT NFT - Token ID: 141"
+            "value": "pFT NFT #141"
           },
           {
             "label": "Price",
@@ -35,7 +35,7 @@
             "value": "2026-04-03 07:06:40Z"
           }
         ],
-        "interpolatedIntent": "List PUT Collection Name: pFT NFT - Token ID: 141"
+        "interpolatedIntent": "List PUT pFT NFT #141"
       }
     },
     {
@@ -48,7 +48,7 @@
         "fields": [
           {
             "label": "Position",
-            "value": "Collection Name: pFT NFT - Token ID: 141"
+            "value": "pFT NFT #141"
           },
           {
             "label": "Price",
@@ -59,7 +59,7 @@
             "value": "2026-04-03 21:00:00Z"
           }
         ],
-        "interpolatedIntent": "Edit PUT Collection Name: pFT NFT - Token ID: 141"
+        "interpolatedIntent": "Edit PUT pFT NFT #141"
       }
     },
     {
@@ -72,10 +72,10 @@
         "fields": [
           {
             "label": "Position",
-            "value": "Collection Name: pFT NFT - Token ID: 141"
+            "value": "pFT NFT #141"
           }
         ],
-        "interpolatedIntent": "Remove PUT Collection Name: pFT NFT - Token ID: 141"
+        "interpolatedIntent": "Remove PUT pFT NFT #141"
       }
     },
     {
@@ -88,7 +88,7 @@
         "fields": [
           {
             "label": "Position",
-            "value": "Collection Name: pFT NFT - Token ID: 141"
+            "value": "pFT NFT #141"
           },
           {
             "label": "Price",
@@ -99,7 +99,7 @@
             "value": "2026-04-03 07:06:40Z"
           }
         ],
-        "interpolatedIntent": "Buy PUT Collection Name: pFT NFT - Token ID: 141"
+        "interpolatedIntent": "Buy PUT pFT NFT #141"
       }
     },
     {
@@ -112,7 +112,7 @@
         "fields": [
           {
             "label": "Position",
-            "value": "Collection Name: pFT NFT - Token ID: 141"
+            "value": "pFT NFT #141"
           },
           {
             "label": "Offer price",
@@ -127,7 +127,7 @@
             "value": "2026-04-03 07:06:40Z"
           }
         ],
-        "interpolatedIntent": "Accept offer Collection Name: pFT NFT - Token ID: 141"
+        "interpolatedIntent": "Accept offer pFT NFT #141"
       }
     }
   ]
