@@ -7,6 +7,9 @@
   "metadata": {
     "owner": "Lido DAO",
     "info": { "url": "https://lido.fi" },
+    "enums": {
+      "operatorApproval": { "true": "Allow all", "false": "Revoke all" }
+    },
     "constants": {
       "stETHaddress": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
       "wstETHaddress": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
@@ -17,9 +20,10 @@
     "formats": {
       "requestWithdrawals(uint256[] _amounts, address _owner)": {
         "intent": "Request Withdrawal",
+        "interpolatedIntent": "Withdraw {_amounts.[]}",
         "fields": [
           {
-            "label": "Amount to withdraw",
+            "label": "Amount",
             "format": "tokenAmount",
             "path": "#._amounts.[]",
             "params": { "token": "$.metadata.constants.stETHaddress" },
@@ -28,7 +32,7 @@
           {
             "label": "Beneficiary",
             "format": "addressName",
-            "params": { "types": ["eoa", "wallet"], "sources": ["local", "ens"] },
+            "params": { "types": ["eoa", "wallet"], "sources": ["local", "ens"], "senderAddress": ["0x0000000000000000000000000000000000000000"] },
             "path": "#._owner",
             "visible": "always"
           }
@@ -36,9 +40,10 @@
       },
       "requestWithdrawalsWithPermit(uint256[] _amounts, address _owner, (uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) _permit)": {
         "intent": "Request Withdrawal",
+        "interpolatedIntent": "Withdraw {_amounts.[]}",
         "fields": [
           {
-            "label": "Amount to withdraw",
+            "label": "Amount",
             "format": "tokenAmount",
             "path": "#._amounts.[]",
             "params": { "token": "$.metadata.constants.stETHaddress" },
@@ -47,7 +52,7 @@
           {
             "label": "Beneficiary",
             "format": "addressName",
-            "params": { "types": ["eoa", "wallet"], "sources": ["local", "ens"] },
+            "params": { "types": ["eoa", "wallet"], "sources": ["local", "ens"], "senderAddress": ["0x0000000000000000000000000000000000000000"] },
             "path": "#._owner",
             "visible": "always"
           },
@@ -60,6 +65,7 @@
       },
       "requestWithdrawalsWstETH(uint256[] _amounts, address _owner)": {
         "intent": "Request withdrawal",
+        "interpolatedIntent": "Withdraw {_amounts.[]}",
         "fields": [
           {
             "label": "Amount to withdraw",
@@ -79,6 +85,7 @@
       },
       "requestWithdrawalsWstETHWithPermit(uint256[] _amounts, address _owner, (uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) _permit)": {
         "intent": "Request withdrawal",
+        "interpolatedIntent": "Withdraw {_amounts.[]}",
         "fields": [
           {
             "label": "Amount to withdraw",
@@ -90,7 +97,7 @@
           {
             "label": "Beneficiary",
             "format": "addressName",
-            "params": { "types": ["eoa", "wallet"], "sources": ["local", "ens"] },
+            "params": { "types": ["eoa", "wallet"], "sources": ["local", "ens"], "senderAddress": ["0x0000000000000000000000000000000000000000"] },
             "path": "#._owner",
             "visible": "always"
           },
@@ -98,18 +105,18 @@
         ]
       },
       "claimWithdrawal(uint256 _requestId)": {
-        "intent": "claim withdrawal",
+        "intent": "Claim withdrawal",
         "fields": [{ "label": "Request ID", "format": "raw", "path": "#._requestId", "visible": "always" }]
       },
       "claimWithdrawals(uint256[] _requestIds, uint256[] _hints)": {
-        "intent": "claim withdrawals",
+        "intent": "Claim withdrawals",
         "fields": [
           { "label": "Request ID", "format": "raw", "path": "#._requestIds.[]", "visible": "always" },
           { "label": "Hints", "path": "#._hints.[]", "visible": "never" }
         ]
       },
       "claimWithdrawalsTo(uint256[] _requestIds, uint256[] _hints, address _recipient)": {
-        "intent": "claim withdrawals",
+        "intent": "Claim withdrawals",
         "fields": [
           { "label": "Request IDs", "format": "raw", "path": "#._requestIds.[]", "visible": "always" },
           {
@@ -136,6 +143,7 @@
       },
       "safeTransferFrom(address _from, address _to, uint256 _requestId)": {
         "intent": "Transfer unstETH NFT",
+        "interpolatedIntent": "Send unstETH to {_to}",
         "fields": [
           {
             "label": "From",
@@ -156,6 +164,7 @@
       },
       "transferFrom(address _from, address _to, uint256 _requestId)": {
         "intent": "Transfer unstETH NFT",
+        "interpolatedIntent": "Send unstETH to {_to}",
         "fields": [
           {
             "label": "From",
@@ -175,7 +184,8 @@
         ]
       },
       "setApprovalForAll(address _operator, bool _approved)": {
-        "intent": "Approve unstETH NFTs",
+        "intent": "Manage ALL unstETH NFTs",
+        "interpolatedIntent": "{_approved} unstETH NFTs",
         "fields": [
           {
             "label": "Operator",
@@ -184,7 +194,13 @@
             "path": "#._operator",
             "visible": "always"
           },
-          { "label": "Approved", "format": "raw", "path": "#._approved", "visible": "always" }
+          {
+            "label": "Access",
+            "format": "enum",
+            "params": { "$ref": "$.metadata.enums.operatorApproval" },
+            "path": "#._approved",
+            "visible": "always"
+          }
         ]
       }
     }

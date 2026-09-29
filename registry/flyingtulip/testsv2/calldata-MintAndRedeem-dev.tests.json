@@ -1,0 +1,42 @@
+{
+  "$schema": "../../../specs/erc7730-tests-v2.schema.json",
+  "descriptor": "../calldata-MintAndRedeem-dev.json",
+  "dataProvider": {
+    "tokens": {
+      "0x04E6227d51Fc10AFb6c270017690a2B0a1d4427B": { "symbol": "ftUSD", "decimals": 6, "name": "Flying Tulip USD" },
+      "0x29219dd400f2Bf60E5a23d13Be72B486D4038894": { "symbol": "USDC", "decimals": 6, "name": "USDC" }
+    }
+  },
+  "tests": [
+    {
+      "description": "Buy ftUSD",
+      "rawTx": "0x02f8b28192820116850ba43cfaa0850ba43cfaa08312386994b9b23b0555b8066f3d5954ea6c679a02339f78dc80b884a647e8ec00000000000000000000000029219dd400f2bf60e5a23d13be72b486d403889400000000000000000000000000000000000000000000000000000000004c3686000000000000000000000000000000000000000000000000000000006a25e6e400000000000000000000000000000000000000000000000000000000004bcf88c0",
+      "txHash": "0xbbf3c7587e3501d9ba80e740b1497a9f1fac746ea4b143f6adf9a8f3bbbcd90b",
+      "expected": {
+        "intent": "Buy ftUSD",
+        "owner": "Flying Tulip",
+        "fields": [
+          { "label": "Pay", "value": "4.994694 USDC" },
+          { "label": "Minimum receive", "value": "4.968328 ftUSD" },
+          { "label": "Deadline", "value": "2026-06-07 21:47:16Z" }
+        ],
+        "interpolatedIntent": "Buy 4.968328 ftUSD"
+      }
+    },
+    {
+      "description": "Sell ftUSD",
+      "rawTx": "0x02f8b28192820387850cce416600850cce416600831470a094b9b23b0555b8066f3d5954ea6c679a02339f78dc80b884ea2092f300000000000000000000000029219dd400f2bf60e5a23d13be72b486d4038894000000000000000000000000000000000000000000000000000000000080c4b9000000000000000000000000000000000000000000000000000000006a4d6ff300000000000000000000000000000000000000000000000000000000008024cfc0",
+      "txHash": "0xc98c03f56d746abd528d34a3851c3515e252baac4cdafa4a7615b6fd320d27fc",
+      "expected": {
+        "intent": "Sell ftUSD",
+        "owner": "Flying Tulip",
+        "fields": [
+          { "label": "Pay", "value": "8.438969 ftUSD" },
+          { "label": "Minimum receive", "value": "8.398031 USDC" },
+          { "label": "Deadline", "value": "2026-07-07 21:30:27Z" }
+        ],
+        "interpolatedIntent": "Sell 8.438969 ftUSD"
+      }
+    }
+  ]
+}

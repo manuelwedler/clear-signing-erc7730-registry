@@ -1,0 +1,6 @@
+{
+  "$schema": "../../specs/erc7730-v2.schema.json",
+  "includes": "common-EpochRewardsVault-dev.json",
+  "context": { "contract": { "deployments": [{ "chainId": 146, "address": "0x137D66e0a5D4cEEe0A7eDA011bC3aA94931C7234" }] } },
+  "metadata": { "constants": { "ftUSD": "0x04E6227d51Fc10AFb6c270017690a2B0a1d4427B" } }
+}

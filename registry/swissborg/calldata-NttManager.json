@@ -8,13 +8,26 @@
     "owner": "SwissBorg",
     "info": { "url": "https://swissborg.com/bridge" },
     "constants": { "borgAddress": "0x64d0f55Cd8C7133a9D7102b13987235F486F2224" },
-    "contractName": "BORG Bridge (Outbound)"
+    "contractName": "BORG Bridge (Outbound)",
+    "enums": {
+      "wormholeChain": {
+        "1": "Solana",
+        "2": "Ethereum",
+        "4": "BNB Smart Chain",
+        "5": "Polygon",
+        "6": "Avalanche",
+        "23": "Arbitrum",
+        "24": "Optimism",
+        "30": "Base"
+      }
+    }
   },
   "display": {
     "formats": {
       "transfer(uint256 amount, uint16 recipientChain, bytes32 recipient)": {
         "$id": "transfer",
         "intent": "Bridge BORG",
+        "interpolatedIntent": "Bridge {#.amount} BORG",
         "fields": [
           {
             "$id": "amount",
@@ -27,7 +40,8 @@
           {
             "$id": "destinationChain",
             "label": "Destination Chain",
-            "format": "raw",
+            "format": "enum",
+            "params": { "$ref": "$.metadata.enums.wormholeChain" },
             "path": "#.recipientChain",
             "visible": "always"
           },
@@ -43,6 +57,7 @@
       "transfer(uint256 amount, uint16 recipientChain, bytes32 recipient, bytes32 refundAddress, bool shouldQueue, bytes transceiverInstructions)": {
         "$id": "transfer2",
         "intent": "Bridge BORG",
+        "interpolatedIntent": "Bridge {#.amount} BORG",
         "fields": [
           {
             "$id": "amount",
@@ -55,7 +70,8 @@
           {
             "$id": "destinationChain",
             "label": "Destination Chain",
-            "format": "raw",
+            "format": "enum",
+            "params": { "$ref": "$.metadata.enums.wormholeChain" },
             "path": "#.recipientChain",
             "visible": "always"
           },
@@ -69,7 +85,7 @@
           { "$id": "refundAddress", "label": "Refund Address", "format": "raw", "path": "#.refundAddress" },
           { "$id": "shouldQueue", "label": "Should Queue", "format": "raw", "path": "#.shouldQueue" },
           { "$id": "transceiverInstructions", "label": "Instructions", "format": "raw", "path": "#.transceiverInstructions" },
-          { "$id": "relayingFee", "label": "Relaying Fee", "path": "@.value", "format": "amount" }
+          { "$id": "relayingFee", "label": "Relaying Fee", "path": "@.value", "format": "amount", "visible": "optional" }
         ]
       }
     }
