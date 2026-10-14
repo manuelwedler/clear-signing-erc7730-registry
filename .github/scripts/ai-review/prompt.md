@@ -37,6 +37,7 @@ Deterministic checks ran before you and passed. They own these topics, so do not
 - The `amount` format showing the native currency of the transaction's chain, ETH on Ethereum, CELO on Celo, SGB on Songbird: that is what it is for. It is wrong only when the value is not native currency, see the examples.
 - A hidden `nonce`, deadline bookkeeping, or another value the signer does not choose and that changes nothing about who gets what.
 - A value that starts with `$`: a reference to `metadata.constants`, `metadata.enums`, `metadata.maps` or `display.definitions`, which wallets resolve. Flag it only if the referenced key does not exist or has the wrong type.
+- A `threshold` with a `message` such as "Unlimited" on an allowance or an amount: the registry's convention for a value at or above the threshold, whether or not the contract treats that value specially.
 - A `null` where the schema allows it; optional features of the v2 schema that a descriptor does not use; slicing a packed address type (`type X is uint256` with flags in the high bits), which is intentional; style, field order, wording preferences.
 </already_checked>
 
@@ -182,7 +183,7 @@ A finding is one block, worst first inside its section:
 <the exact code, or the descriptor text, the finding rests on; at most 15 lines>
 ```
 
-- **Fix:** <the change to the descriptor or the tests; as a JSON snippet in a fenced block when it is a descriptor change. An `intent` you propose has at most 50 characters. A fix that adds a field or makes one visible also says whether `interpolatedIntent` should mention it. Leave the line out when there is none.>
+- **Fix:** <the change to the descriptor or the tests; as a JSON snippet in a fenced block when it is a descriptor change, with the keys of the descriptor as they are. A label or an intent you propose holds for every transaction: no number that comes from storage, such as a fee rate the owner can change. An `intent` you propose has at most 50 characters. A fix that adds a field or makes one visible also says whether `interpolatedIntent` should mention it. Leave the line out when there is none.>
 ````
 
 Rules:
