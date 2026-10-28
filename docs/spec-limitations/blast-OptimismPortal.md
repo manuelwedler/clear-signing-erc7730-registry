@@ -11,3 +11,15 @@
 - **What the spec cannot express:** a field value computed from contract state or from arithmetic on another field. Field formats take a path or a literal value only (Field format specification > `path` / `value`); the spec deliberately has no on-chain read at display time (Security Considerations > External data resolution).
 - **Workaround in this descriptor:** the amount is labelled "Maximum Amount" and the sentence says "up to {_tx.value}".
 - **Proposed spec improvement:** none that keeps the spec free of external calls. If the spec ever admits state reads, a `scaledAmount` format with a `ratioPath` or `ratioCall` and an explicit precision would cover withdrawal queues of this kind (Lido and Blast share the share-price design).
+
+## Cross-chain embedded calldata is not schema-valid
+- **What the signer should see:** `depositTransaction._data` and the messenger's `sendMessage._message` decoded as calls on Blast (chain 81457). For the deposit: callee `_to`, value `_value`, sender the depositor's L2 account. For `sendMessage`: callee `_target`, sender the L2 messenger.
+- **What the spec cannot express:** the spec text ("Field formats > calldata") lists `chainId`/`chainIdPath`, but `specs/erc7730-v2.schema.json` `$format/calldataParameters` has `additionalProperties: false` without them, and the pinned linter rejects them. Both registry runners render the field correctly with `chainId`.
+- **Workaround in this descriptor:** the bytes are shown raw. Leaving out `chainId` would make wallets resolve the callee on chain 1, which is wrong.
+- **Proposed spec improvement:** add `chainId` (integer) and `chainIdPath` to `calldataParameters` in the schema and to the linter model.
+
+## A bytes argument whose meaning depends on another argument
+- **What the signer should see:** on L1BlastBridge `bridgeERC20` for USDC or USDT, `_extraData` is a uint256 minimum DAI output (USDConversions lines 138-142). For DAI and stETH it is ignored.
+- **What the spec cannot express:** there is no field that is visible only for some values of another field, and no defined result for a slice beyond the end of the bytes. With `_extraData.[0:32]` as `tokenAmount`, the runners agree on 32-byte data, but on empty data Sourcify shows "0 DAI" and Rust shows `<unresolved>`.
+- **Workaround in this descriptor:** the bytes are shown raw, labelled "Min Out (USDC/USDT)".
+- **Proposed spec improvement:** a `visible` rule conditioned on another path, and a defined out-of-range slice behaviour.

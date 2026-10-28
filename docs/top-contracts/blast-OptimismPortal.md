@@ -126,3 +126,34 @@ Real transactions: 4. Encoded: 1.
 - Finalization pays at most `_tx.value`; the real amount is `value × sharePrice`, read from the yield manager at finalization.
 - A contract-wallet depositor's ETH is credited on Blast to the aliased address, not to the wallet's own address.
 - Traffic to selectors that are not in this ABI reverts: `0xfa92670c` = `depositTransaction(address,uint256,uint256,bool,bytes)` (the OP Mainnet signature with `uint256` gas limit), 6 failed calls in the last 1000 transactions; the brief's single legacy `finalizeWithdrawalTransaction((...))` call is the same kind of mistake. No descriptor can make those succeed.
+
+## Update: embedded calls (`calldata` format) and three new descriptors
+
+Paste this section into PR #3172. It supersedes the earlier text on `_tx.data` and on the partial screen for bridge withdrawals.
+
+**Coverage.**
+- **OptimismPortal:** the same functions as before. On prove and finalize, `_tx.data` is now a visible `calldata` field with callee `_tx.target`, amount `_tx.value` and spender the portal (OptimismPortal.sol line 385 calls the target from the portal). Finalize pays `txValueWithDiscount`, which is at most `_tx.value` (lines 371-376), so the "maximum" wording stays. On prove, the field shows the call that finalization will make; the data is bound by the withdrawal hash (lines 243, 272-277). `depositTransaction._data` stays raw, because the v2 schema has no cross-chain `chainId` for embedded calldata.
+- **New `calldata-L1CrossDomainMessenger.json`:** proxy `0x5D4472f31Bd9385709ec61305AFc749F0fA8e9d0` (ResolvedDelegateProxy, implementation `0x84efcFCE2dEe08072d5D57BF232D379b6E92A836`, version 1.7.1). Describes `sendMessage` and `relayMessage`. `relayMessage._message` is a `calldata` field with callee `_target`, amount `_value` and spender the messenger (L1CrossDomainMessenger.sol line 148). `initialize` is excluded.
+- **New `calldata-L1StandardBridge.json`:** proxy `0x697402166Fbf2F22E970df8a6486Ef171dbfc524` (L1ChugSplashProxy, implementation `0xD2C23A5A280AFF9182b953579f62EDdDF1c7ff22`, version 1.4.1). Describes the 8 deposit and bridge functions and the 4 finalize functions. `initialize` is excluded.
+- **New `calldata-L1BlastBridge.json`:** proxy `0x3a05E5d33d7Ab3864D53aaEc93c8301C1Fa49115` (L1ChugSplashProxy, implementation `0x7A2075519Dd9598b62075FD397aF0Dd34b14619a`, version 1.0.0). Describes 4 bridge functions and 2 finalize functions. `initialize`, `setETHYieldToken` and `setUSDYieldToken` are excluded.
+- All addresses come from Blast's docs and are full matches on Sourcify (solc 0.8.15). Each descriptor binds only the proxy on chain 1.
+- **Hidden fields:** gas limits (a failed relay can be replayed), nonces (bound by the hash), opaque `_extraData` (only emitted), and the local token (it is the ticker of the amount).
+
+**What the screens say.**
+- A withdrawal now renders in three levels: the portal value, then the messenger "Relay up to X from <L2 bridge> on Blast to <L1 bridge>", then the bridge payout with Maximum Amount, Paid To and Withdrawn By. For USDB, the last level is "Queue DAI claim for Blast USDB", because the bridge calls `usdYieldManager.requestWithdrawal(_to, _amount)` (L1BlastBridge line 209) and the later claim is scaled by the share price.
+- Every ETH amount after the portal is a maximum, because Blast pays a discounted value. The bridge pays `msg.value`, which is at most `_amount` (L1StandardBridge lines 180 and 190, L1BlastBridge lines 163 and 173).
+- The finalize screens describe someone else's withdrawal. The signer's own funds do not move.
+- Bridge deposits: "Bridge {amount} to your address on Blast" or "… to {_to} on Blast". The variants without `To` are `onlyEOA` (StandardBridge line 107), so the recipient is the same address on Blast. The ERC-20 amount is exact (lines 352-354). "Token on Blast" shows `_remoteToken` raw, because it is an L2 address.
+- On L1BlastBridge, `_extraData` of a USDC or USDT bridge is a minimum output (USDConversions lines 138-142). It is shown raw as "Min Out (USDC/USDT)".
+
+**Tests.**
+- OptimismPortal 4 cases: real `0x655e2c99…7af0` (deposit with data), `0x177478d9d2f2391e649f941b441c4e4786679b109acee84a30698e62a27f8cab` (finalize to an EOA) and `0x5587fdcb02a0cfe0c93ef259c5b6cfe088371857e96b3cd2cbc89a9a2cb59632` (prove to an EOA), and one encoded ETH deposit.
+- L1CrossDomainMessenger 3 cases: real `sendMessage` `0xf995205a372fbc76d4fe89bd1af2091432d04916bc0607f8e0c01967888c522e` and `0xf29204a885aa026222a1c6ef57593cf7477a1e4227aa18b6bb04ba9ce24e2922`, and one encoded `relayMessage` to an EOA. HyperSync found no successful direct `relayMessage` on the whole chain.
+- L1StandardBridge 12 cases: 8 real deposits, and 4 encoded finalize calls whose arguments come from the inner messages of real withdrawals `0x9e471368…` and `0x760b0a26…`. The finalize functions are never called directly.
+- L1BlastBridge 8 cases: 5 real (stETH, USDT, DAI, `bridgeETH`, `bridgeETHTo`), and 3 encoded (`bridgeERC20To`, never called directly, and the two finalize functions with arguments from `0xb1ac3b0e…` and `0x4ad03cea…`).
+- Real nested withdrawals render correctly in both runners, down to the bridge payout, but cannot be committed because of the runner conflict on nested `interpolatedIntent`: `0xb1ac3b0e814465d8fb6ee8c16cb52dfc94e3a2a224287c78f823a32c8cfbe779`, `0x4ad03ceacd8c6d8eebe66efd55204bc43b96fd70ae711066d8ec51c04864722a`, `0x9d2d0f0773011eab78383366d96545f3d16c01c4dfd4f4b7655000fa10c20645`, `0x9e471368362428caa8d164d185a08afa759a5a204309978d29709ff771c786d3`, `0x760b0a2658e02bd71553b2ab47f92074f70463fd25aa83c493e6c0221179748d`, `0xc88535ff48b9e54ce265776794736e6ff75af7a4d81da17a2f83f6f024d64186`.
+
+**Checks.**
+- Lint at the registry pin: 0 errors in all four files. The warnings are intent length, missing formats for proxy-admin and excluded functions, and "Unknown selector", because the linter reads the unresolved proxy ABI from Sourcify.
+- Both registry runners pass every case: OptimismPortal 4/4, L1CrossDomainMessenger 3/3, L1StandardBridge 12/12, L1BlastBridge 8/8.
+- The new descriptors were built with clear-signing-helper 0.6.0-preview.6 (`--strict-portability --registry-runners`, no portability findings). Claims replayed 18 real fixtures with 0 findings. A language-model agent added the `calldata` fields by hand, because the helper does not support that format.
