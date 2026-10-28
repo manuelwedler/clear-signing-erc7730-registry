@@ -121,3 +121,26 @@ Why most real deposits were not usable: the Across app appends an integrator tag
 - `outputAmount` and `outputToken` are raw destination-chain values; the wallet cannot verify the destination amount.
 - `Native Value Sent` renders "0 ETH" on ERC-20 deposits.
 - The `destinationChain` enum needs updating when Across adds chains; an unknown id renders as a number.
+
+## Update: embedded calls (`calldata` format)
+
+Paste this section into PR #3173. It supersedes the earlier text on `multicall`, `tryMulticall` and the "nested calldata" exclusions.
+
+**Coverage.** 9 functions are described: the 7 deposit and speed-up functions, plus `multicall(bytes[])` and `tryMulticall(bytes[])`. Each batch element uses the ERC-7730 `calldata` format with callee `@.to` and `amountPath: @.value`. Both functions delegatecall into this contract (MultiCallerUpgradeable.sol lines 38, 68), so `msg.sender` is kept. Neither is payable, so an inner deposit always sees `msg.value = 0` and takes the ERC-20 path (SpokePool.sol line 1440).
+
+26 functions are excluded:
+- **Relayer and settlement:** `fillRelay`, `fillV3Relay`, `fillRelayWithUpdatedDeposit`, `requestSlowFill`, `executeSlowRelayLeaf`, `executeRelayerRefundLeaf`, `claimRelayerRefund`, and `fill`. `fill` is relayer-only: it fills a deposit and pays the output tokens from the caller (lines 1197-1218).
+- **Gateway and executor only:** `executeAcrossV5` reverts unless the sender is the Gateway (line 1045). `adapterExecuteAcrossV5` reverts unless the sender is the Gateway's current executor (line 1079).
+- **Admin:** `relayRootBundle`, `emergencyDeleteRootBundle`, `pauseDeposits`, `pauseFills`, `setCrossDomainAdmin`, `setWithdrawalRecipient`, `setOftMessenger` and `executeExternalCall` are `onlyAdmin`, which is `onlyOwner` on Ethereum (Ethereum_SpokePool.sol line 55). `upgradeTo` and `upgradeToAndCall` are admin-only through `_authorizeUpgrade` (line 325). `renounceOwnership` and `transferOwnership` are Ownable. `initialize` is an initializer.
+- **Removed:** `depositDeprecated_5947912356` and `depositFor` always revert.
+
+**Pins.** `message` and `updatedMessage` stay pinned with `mustMatch ["0x"]`, and the pins also apply inside batches. The message is not calldata of a function call. It is the 4th argument of the recipient's `handleV3AcrossMessage` (SpokePool.sol lines 1818-1825). Across's MulticallHandler decodes it as `abi.encode(Instructions{Call[] calls, address fallbackRecipient})` and runs the calls on the destination chain. So the `calldata` format does not apply to it.
+
+**What the screens say (additions).**
+- `multicall`: "Run every action below in one transaction; if one action fails, the whole transaction reverts" (MultiCallerUpgradeable.sol lines 41-49).
+- `tryMulticall`: "…an action that fails is skipped and the others still run" (lines 63-70). An inner deposit may then not happen, and the intent "Batch, skip failed actions" says so.
+- Inside a batch, a deposit shows "Native Value Sent 0 ETH" and the amount in the token. That is true, because `msg.value == 0` makes the deposit pull `inputToken`.
+
+**Tests.** 11 cases: the 9 earlier ones, plus two real empty batches sent by relayers: `multicall` `0x219dd27132aab142346a9fa7178e1997f0381f3611797b47831e7de22fb603c6` and `tryMulticall` `0x1cc3f068548e0e812df856b9afbe582253ed45f1cb1184c3df0fa8d8c94606c8`. HyperSync searched the whole chain. It found 5,794 successful `multicall` and 29 `tryMulticall` transactions, and every one is a relayer fill, a slow-fill request or an empty batch. No real user batch exists. An encoded user batch, a `depositV3` and a `depositV3Now` taken from real transactions, renders correctly in both runners. It cannot be committed because of the runner conflict on nested `interpolatedIntent` (see PR #3175).
+
+**Checks.** Lint at the registry pin: 0 errors, 27 warnings (26 missing formats for excluded functions, 1 intent too long). Sourcify runner `9d6d2fe4` 11/11, Rust runner `65af2281` 11/11. A language-model agent added the `calldata` fields and tests by hand. `claims` was not run again, because neither function moves funds by itself.

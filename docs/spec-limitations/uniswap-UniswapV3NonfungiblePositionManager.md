@@ -35,3 +35,15 @@
 - **What the spec cannot express:** the owner is `ownerOf(tokenId)`, contract state. `nftName` shows the collection and the id only, and no path reference reads state ("Field formats > nftName", "Path references").
 - **Workaround in this descriptor:** the screen shows the position as "Uniswap V3 Positions NFT-V1 #<id>". The sentence says "to position <id>" and does not claim the position is the signer's.
 - **Proposed spec improvement:** the same `eth_call`-backed reference proposed in the first section, usable from `addressName` (e.g. `ownerOf(tokenId)` compared against `@.from`, rendered as "you" when equal).
+
+## No condition across the elements of a batch
+- **What the signer should see:** "Pay 0.01 ETH; up to 0.01 WETH is added to the position and the rest returns to you." This is true for `multicall([mint, refundETH])` with ETH.
+- **What the spec cannot express:** the `calldata` format renders each element of `data.[]` alone (Embedded Calldata; Field formats > calldata). `visible`/`mustMatch` checks one value. Nothing can say "this element's `@.value` may be non-zero only if a later element calls `refundETH`".
+- **Workaround in this descriptor:** `@.value` stays pinned to 0 in `mint` and `increaseLiquidity`. ETH-paying batches are not clear-signed.
+- **Proposed spec improvement:** a batch-level rule on a `calldata` array field, for example `"requires": [{"selector": "0x12210e8a", "after": "self"}]`. Under it, an element's pins on `@.value` are relaxed only when the required element is present.
+
+## Zero address that stands for this contract
+- **What the signer should see:** "sent to this contract" when `collect.recipient` is 0.
+- **What the spec cannot express:** `addressName` has `senderAddress`, which maps a value to `@.from`. Nothing maps a value to `@.to` (Field formats > addressName).
+- **Workaround in this descriptor:** the address is shown raw, and the sentence explains the zero address.
+- **Proposed spec improvement:** a `contractAddress` parameter, the analogue of `senderAddress`, that renders a matching value as the called contract.

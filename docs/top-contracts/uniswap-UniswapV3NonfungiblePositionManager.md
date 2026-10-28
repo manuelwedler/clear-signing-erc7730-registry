@@ -162,3 +162,21 @@ Token metadata was read from chain by `fixture --rpc-url`: DOS, USDT, USDC, WETH
 - **Did not run or could not be verified:**
   - No physical-device test.
   - No other-chain deployments (out of scope).
+
+## Update: embedded calls (`calldata` format)
+
+Paste this section into PR #3175. It supersedes the earlier text on `multicall`.
+
+**Coverage.** `multicall(bytes[])` is now described: 20 functions described, 1 excluded (`uniswapV3MintCallback`, the pool callback). Each batch element uses the ERC-7730 `calldata` format with callee `@.to` and `amountPath: @.value`. Each element is a delegatecall into this contract (base/Multicall.sol lines 11-27), so `msg.sender` and `msg.value` are kept. The outer screen shows "ETH Sent". No other parameter carries calldata: `safeTransferFrom` `_data` is opaque bytes for `onERC721Received`, and the callback `data` is an ABI-encoded struct.
+
+**Pins.** The `@.value` `mustMatch [0]` pins stay on all 15 payable functions, and they still apply inside `multicall` through `amountPath`. So a `multicall` that pays ETH stays blind, which covers the app's `mint + refundETH` and `increaseLiquidity + refundETH`. Unused ETH stays in the contract (PeripheryPayments.sol lines 58-61), and anyone can take it with `refundETH` (lines 44-46). A per-element descriptor cannot require a later `refundETH` in the same batch.
+
+**What the screens say (additions).**
+- `multicall`: "Send {value} and run every action below in one transaction; if one action fails, the whole transaction reverts" (Multicall.sol lines 16-23). Each action renders with its own format. "to you" in `refundETH` stays true, because a delegatecall keeps `msg.sender`.
+- `collect` now adds: "The zero address keeps them in this contract, where any caller can sweep them" (NonfungiblePositionManager.sol line 318). The app's remove-to-ETH batch uses `recipient = 0`, then `unwrapWETH9` and `sweepToken`.
+
+**Tests.** 20 cases: the 19 earlier ones, with the `collect` expectation updated, and one encoded empty `multicall`. Eight real app batches render correctly in both registry runners but cannot be committed. The pinned Rust runner rejects a nested `interpolatedIntent` in `expected`, and the Sourcify runner requires it. Those batches are `0x3e486a3e…a8dc`, `0xd74eede2…b34b`, `0x92f975da…2dec`, `0x055c644d…b8f9`, `0x21ecb1d0…503e`, `0xb938e5bd…f570`, `0x2c3cc358…98e2` and `0x70c3dfd8…ff27`. They cover mint + refundETH, decrease + collect, collect + unwrap + sweep, collect + increase, the full remove flow with burn, selfPermitIfNecessary + mint, and createAndInitializePoolIfNecessary + mint.
+
+**Checks.** Lint at the registry pin: 0 errors, 2 warnings. Sourcify runner `9d6d2fe4` 20/20, Rust runner `65af2281` 20/20. The eight real batches: Sourcify 8/8, and Rust 8/8 with the nested `interpolatedIntent` removed. A language-model agent added the `calldata` format and the tests by hand, because clear-signing-helper does not support that format. `claims` was not run again for these changes.
+
+**Tool limitation (runners).** For an inner format with an `interpolatedIntent`, no `expected` block passes both runners. Sourcify (`compareNestedDisplay`) requires the nested `interpolatedIntent`. The Rust runner's `NestedExpected` uses `deny_unknown_fields` and rejects it. Either runner needs a fix before real nested cases can be committed.

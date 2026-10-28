@@ -17,3 +17,9 @@
 - **What the spec cannot express:** a field has one `format`; there is no rule that picks `duration` or `date` by a value range (Display Formatting > Field format specification).
 - **Workaround in this descriptor:** the field is hidden with the reason that it only decides which relayer may fill first and does not change what the signer pays or what the recipient gets.
 - **Proposed spec improvement:** a `formatBy` rule with value ranges, e.g. `{"ranges": [{"max": 0, "format": "enum"}, {"max": 31536000, "format": "duration"}, {"format": "date"}]}`.
+
+## Bytes argument that holds an ABI-encoded struct of calls
+- **What the signer should see:** for a deposit with a `message`, the actions that run on arrival. For example: "on Base, swap the received USDC on <router>, then send the rest to <fallbackRecipient>".
+- **What the spec cannot express:** the `calldata` format needs a selector and ABI arguments (Field formats > calldata). `message` is `abi.encode(Instructions{Call[]{target, callData, value}, fallbackRecipient})`, with no selector. No format ABI-decodes a `bytes` field into a struct so that its members can use `calldata` with `chainIdPath`.
+- **Workaround in this descriptor:** `message` and `updatedMessage` stay pinned with `mustMatch ["0x"]`. Deposits with destination actions fall back to blind signing.
+- **Proposed spec improvement:** a `bytes` format such as `abiDecode` with a `types` parameter. Its decoded members could then be addressed by path and formatted, including `calldata` with `chainIdPath` and `calleePath`.
