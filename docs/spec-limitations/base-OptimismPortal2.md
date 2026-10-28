@@ -5,3 +5,15 @@
 - **What the spec cannot express:** "Field formats > amount" has no `chainId`/`chainIdPath` parameter; only "Field formats > tokenAmount" has one. An `amount` field is always rendered in the native currency of the chain of the deployment (here Ethereum). For Base the ticker is ETH on both chains, so the rendering is correct, but the spec has no way to state the chain of a native amount. On an OP Stack chain with a custom gas token the same descriptor shape would show the wrong currency.
 - **Workaround in this descriptor:** the field label carries the chain ("ETH Sent on L2") and the sentence separates the two amounts ("Bridge {@.value} to Base, send {_value} to {_to}"). The currency is correct because Base uses ETH as its native currency, which was checked on chain (`SystemConfig.isFeatureEnabled("CUSTOM_GAS_TOKEN")` is false).
 - **Proposed spec improvement:** add the optional `chainId` / `chainIdPath` parameters of `tokenAmount` to the `amount` format, with the same semantics: the wallet renders the value in the native currency of that chain.
+
+## Cross-chain embedded calldata is not schema-valid
+- **What the signer should see:** the call that `depositTransaction(_data)` and `sendMessage(_message)` make on Base, decoded with the Base descriptor of the callee. For example, a 1inch swap on Base funded by the deposit.
+- **What the spec cannot express:** the spec text ("Field formats > calldata") lists `chainId`/`chainIdPath`, but `specs/erc7730-v2.schema.json` `$format/calldataParameters` allows only callee, selector, amount and spender (with their Path forms) and sets `additionalProperties: false`. The pinned linter rejects `chainId`. Without it, a wallet resolves the L2 callee on chain 1.
+- **Workaround in this descriptor:** `depositTransaction._data` keeps `mustMatch ["0x"]`, so a deposit with an L2 call is not clear-signed. `sendMessage._message` is shown raw. A prototype with `chainId: 8453` rendered the real deposit `0xfbcfabdb570a0ccda01975caf9ef7de8ca71476ab98a80be63788871780785e4` as a nested 1inch swap on Base in both registry runners.
+- **Proposed spec improvement:** add `chainId` and `chainIdPath` to `calldataParameters` in the v2 schema, as the spec text already describes.
+
+## Embedded-call spender cannot express L1-to-L2 address aliasing
+- **What the signer should see:** the account the L2 call runs as: the signer's address for an EOA, and the signer plus `0x1111000000000000000000000000000000001111` for a contract signer (OptimismPortal2.sol lines 589-592).
+- **What the spec cannot express:** `spender`/`spenderPath` ("Field formats > calldata") takes an address or a path, with no transform. `@.from` would be wrong for a Safe or another contract depositor.
+- **Workaround in this descriptor:** none is needed now, because `_data` stays pinned to "0x".
+- **Proposed spec improvement:** an optional `spenderTransform` such as `"l1ToL2Alias"`, applied only when the sender has code, or a container value such as `@.l2From`.

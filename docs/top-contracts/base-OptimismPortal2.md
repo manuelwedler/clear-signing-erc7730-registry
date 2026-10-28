@@ -160,3 +160,34 @@ How the cases were found:
   - No physical-wallet or Ledger test.
   - No registry CI or AI review, because no PR was opened.
 - **Spec limitation:** see `docs/spec-limitations/base-OptimismPortal2.md` (the chain of a native `amount`).
+
+## Update: embedded calls (`calldata` format) and two new descriptors
+
+Paste this section into PR #3174. It supersedes the earlier text on `_tx.data`, on the partial screen for bridge withdrawals, and the test counts in the Summary.
+
+**Coverage.** This PR now adds three descriptors under `registry/base/`. Each binds the user-facing proxy on Ethereum mainnet, and each address is in Base's contract list on docs.base.org.
+
+| File | Proxy | Implementation |
+|---|---|---|
+| `calldata-OptimismPortal2.json` | `0x49048044D57e1C92A77f79988d21Fa8fAF74E97e` | OptimismPortal2 6.0.1, `0x03863Ab7…` |
+| `calldata-L1CrossDomainMessenger.json` | `0x866E82a600A1414e583f7F13623F1aC5d58b0Afa` (ResolvedDelegateProxy, Sourcify exact match) | L1CrossDomainMessenger 2.11.0, `0xb686F13AfF1e427a1f993F29ab0F2E7383729FE0` (Etherscan-verified only; resolved through the AddressManager; `portal()` is the portal above) |
+| `calldata-L1StandardBridge.json` | `0x3154Cf16ccdb4C6d922629664174b904d80F2C35` (L1ChugSplashProxy, Sourcify exact match) | L1StandardBridge 2.8.0, `0x61525EaaCDdB97D9184aFc205827E6A4fd0Bf62A` (`messenger()` is the messenger above) |
+
+- **Portal changes:** `_tx.data` in prove, finalize and finalizeExternalProof is no longer hidden. It is shown as "L1 Call" with the `calldata` format: callee `_tx.target`, amount `_tx.value`, spender the portal (OptimismPortal2.sol line 480). `depositTransaction` is unchanged: `_data` keeps `mustMatch ["0x"]` and `_isCreation` keeps `mustMatch [false]`, because the callee is on Base and the schema cannot name another chain.
+- **L1CrossDomainMessenger:** `sendMessage` ("Send {@.value} and a call to {_target} on Base") and `relayMessage` ("Pay {_value} sent by {_sender} on Base to {_target}"). `relayMessage._message` is "L1 Call" with callee `_target`, amount `_value`, spender the messenger (CrossDomainMessenger.sol line 298). `sendMessage._message` is shown raw as "L2 Call Data". `initialize` is excluded (reinitializer, line 55). The nonce and gas limits are hidden: they are bound by the message hash, or a failed relay can be replayed with more gas.
+- **L1StandardBridge:** the 8 deposit and bridge functions, and the nested-only `finalizeBridgeETH` and `finalizeBridgeERC20` ("Pay {_amount} withdrawn by {_from} on Base to {_to}"). Excluded: `initialize` (admin only, line 112), and the legacy `finalizeETHWithdrawal` and `finalizeERC20Withdrawal`. The legacy pair sits behind `onlyOtherBridge`, and Base's L2StandardBridge 1.1.0 sends only the `finalizeBridge*` calls. Hidden: gas limits, `_extraData` (only emitted in events), the L1 token (it is the ticker of the amount), and `finalizeBridgeERC20._remoteToken`. The deposit's "Token on Base" is shown raw, so the wallet does not resolve an L2 address as a chain-1 name.
+
+**What the screens say.**
+- A finalization now shows three levels: the portal "Finalize Base withdrawal of X to Base L1CrossDomainMessenger"; the messenger "Pay X sent by L2StandardBridge on Base to Base L1StandardBridge"; and the bridge "Pay N TOKEN withdrawn by <user> on Base to <recipient>". The screen therefore names the final recipient, the token and the amount.
+- `relayMessage` pays `_value` that `_sender` sent on Base to `_target`. Both are authentic: the first relay requires the portal and `portal.l2Sender() == L2CrossDomainMessenger` (line 95), and a replay requires `failedMessages[hash]` for the exact parameters (line 260) and `msg.value == 0` (line 258).
+- `finalizeBridgeETH` forwards the relayed ETH to `_to` (lines 250 and 258). `finalizeBridgeERC20` pays `_amount` from escrow (line 293) or mints a Base-native token (line 290). `onlyOtherBridge` (lines 111-117) guarantees the call came from the L2 bridge through the messenger.
+- Deposits without `To` are `onlyEOA`, so the recipient on Base is the signer's own address (StandardBridge.sol lines 166-167). ETH: `msg.value` must equal the bridged amount (line 318). ERC-20: `_amount` is pulled or burned (lines 359-361).
+
+**Tests.**
+- Committed, both runners: portal 6 (all real, including the new `finalizeWithdrawalTransactionExternalProof-eth-direct` `0xa678b277e0263a74f067a7488dc58f5f84c0adad69a2a03f16631f47c98f03d0`), messenger 2 (real `sendMessage` `0x6a0f40b5c646ebdd2276d74f215e195c85734a266765d5162775aa8b69ac538c`, and an encoded `relayMessage` of ETH to an EOA), bridge 10 (8 real deposits, one per function, and 2 encoded finalize calls that are byte-identical to calls the messenger made in real withdrawals; a direct call always reverts).
+- Real nested withdrawals render correctly in both runners, but cannot be committed because of the runner conflict on nested `interpolatedIntent`: `0x9cb27abb93496e7236b533f358c14214ada63ba8b2f04395f9bb34cebb402ea2`, `0xd823f4f0426f64698217a908be92f1b0251db28c5eb06b6070567fd75bfe5880`, `0xacb91a2fe358193d7096ffcf30e249fa187a5f781eb841dafd7771326882ce89`, `0x2d20e4b800cb4fec50f078113fdb7a1740742885856571a154aa16ba3b2c7313`, `0x02ba2ec7144a9fb0c8e9c13ec3e7cb23a81b126d1d1b24f33a67643b67eadbf2`, `0x6856507ed80fb7713e4580dd8dfd1abbe913bbf72ef2cb26a56c8e8488a4c368`, `0x74d7ba73dd1033a36870d8c52ca4f9a07ba9aefe6ac032f93ee5eecd35acea56`, and the messenger replay `0x69f7063eb5a4d3a50b459a074821b05544b76a2288d6b3f66b888800313d3609`.
+
+**Checks.**
+- Lint at the registry pin: 0 errors on all three files. Warnings: portal 7 (intent length; proxy-admin and initialize functions), messenger 3 and bridge 16 (intent length, L1ChugSplashProxy admin functions, and "Unknown selector", because Sourcify does not resolve these legacy proxy types and the linter compares with the proxy ABI).
+- Schema ok, selector coverage ok, index buildable. Both runners pass every committed case: portal 6/6, messenger 2/2, bridge 10/10.
+- The new descriptors were built with clear-signing-helper 0.6.0-preview.6 (`--strict-portability --registry-runners`, no portability findings). Claims replayed 10 real fixtures with 0 findings. A language-model agent added the `calldata` fields by hand, because the helper does not support that format.
