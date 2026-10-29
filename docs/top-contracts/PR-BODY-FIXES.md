@@ -4,16 +4,16 @@ To apply in one pass with the external agent. Use the latest commit of `claude/n
 
 ## 1. Link to a commit, not to a branch (all PRs)
 
-Each description links its spec-limitation notes through the branch `claude/nifty-euler-gwsa66`, which may be deleted later. Replace every link of the form `https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/claude/nifty-euler-gwsa66/<path>` with a permalink to a commit. At commit `ca1df7c`, the links are:
+Each description links its spec-limitation notes through the branch `claude/nifty-euler-gwsa66`, which may be deleted later. Replace every link of the form `https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/claude/nifty-euler-gwsa66/<path>` with a permalink to a commit. At commit `857c5d4`, the links are:
 
 | PR | Contract | Permalink |
 |---|---|---|
-| #3171 | SwftSwap | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/ca1df7c4c06f7ce6acf1f5460633428f45b30d0d/docs/spec-limitations/swft-SwftSwap.md |
-| #3172 | Blast portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/ca1df7c4c06f7ce6acf1f5460633428f45b30d0d/docs/spec-limitations/blast-OptimismPortal.md |
-| #3173 | Across SpokePool | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/ca1df7c4c06f7ce6acf1f5460633428f45b30d0d/docs/spec-limitations/across-Ethereum_SpokePool.md |
-| #3174 | Base portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/ca1df7c4c06f7ce6acf1f5460633428f45b30d0d/docs/spec-limitations/base-OptimismPortal2.md |
-| #3175 | Uniswap V3 NPM | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/ca1df7c4c06f7ce6acf1f5460633428f45b30d0d/docs/spec-limitations/uniswap-UniswapV3NonfungiblePositionManager.md |
-| #3176 | Pendle RouterV4 | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/ca1df7c4c06f7ce6acf1f5460633428f45b30d0d/docs/spec-limitations/pendle-PendleRouterV4.md |
+| #3171 | SwftSwap | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/swft-SwftSwap.md |
+| #3172 | Blast portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/blast-OptimismPortal.md |
+| #3173 | Across SpokePool | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/across-Ethereum_SpokePool.md |
+| #3174 | Base portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/base-OptimismPortal2.md |
+| #3175 | Uniswap V3 NPM | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/uniswap-UniswapV3NonfungiblePositionManager.md |
+| #3176 | Pendle RouterV4 | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/pendle-PendleRouterV4.md |
 
 Apply the same rule to any other link into the fork in the descriptions.
 
@@ -30,3 +30,12 @@ Done in the code and in the docs; only the PR description is left.
 - **Done:** the section "No way to state that a value is a request the contract does not enforce" is removed from `docs/spec-limitations/swft-SwftSwap.md`.
 - **Done:** `docs/top-contracts/swft-SwftSwap.md` describes the Note field (Summary, Coverage table, "What the screens say" item 9, Tests, Checks).
 - **To do:** replace the description of PR #3171 with the updated `docs/top-contracts/swft-SwftSwap.md`, using the permalinks of item 1. The current description still lists the removed limitation.
+
+## 4. SwftSwap (#3171): raw label for the requested minimum
+
+Done in the code and in the docs; only the PR description is left.
+
+- **Done:** the `minReturnAmount` field is now labelled "Requested Min (raw)", and the sentence reads "… requested minimum {minReturnAmount} (raw units)". This tells the signer that the number is unscaled. It matches the "(raw)" labels in #3173 and #3175. The 9 test expectations are updated, and the full CI check passes. Pushed to `claude/nifty-euler-gwsa66-swft`, so PR #3171 already shows it.
+- **Done:** `docs/top-contracts/swft-SwftSwap.md` (Summary, Coverage table, interpolated intents, "What the screens say" item 4) and `docs/spec-limitations/swft-SwftSwap.md` (workaround line) use the new label.
+- **To do:** the PR #3171 description still names the old label "Requested Minimum". Replacing the description as in item 3 covers this.
+
