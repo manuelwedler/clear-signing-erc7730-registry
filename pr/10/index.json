@@ -1,8 +1,37 @@
 {
   "indexVersion": 1,
   "pr": 10,
-  "updatedAt": "2026-10-29T11:09:05.870Z",
+  "updatedAt": "2026-10-29T11:11:31.647Z",
   "runs": [
+    {
+      "runId": 40863326082,
+      "runUrl": "https://github.com/manuelwedler/clear-signing-erc7730-registry/actions/runs/40863326082",
+      "headSha": "02ce9beec5040ac55837204ee85954d22ab23043",
+      "startedAt": "2026-10-29T11:10:31Z",
+      "completedAt": "2026-10-29T11:11:11Z",
+      "generatedAt": "2026-10-29T11:11:31.399Z",
+      "schemaVersion": 1,
+      "summary": {
+        "descriptors": 11,
+        "missingTests": 0,
+        "cases": 122,
+        "byStatus": {
+          "rust-clear-signing": {
+            "pass": 122,
+            "fail": 0,
+            "error": 0,
+            "skipped": 0
+          },
+          "sourcify-ts-clear-signing": {
+            "pass": 122,
+            "fail": 0,
+            "error": 0,
+            "skipped": 0
+          }
+        },
+        "disagreements": 0
+      }
+    },
     {
       "runId": 40862964656,
       "runUrl": "https://github.com/manuelwedler/clear-signing-erc7730-registry/actions/runs/40862964656",
