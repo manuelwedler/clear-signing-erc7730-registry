@@ -144,3 +144,26 @@ Paste this section into PR #3173. It supersedes the earlier text on `multicall`,
 **Tests.** 11 cases: the 9 earlier ones, plus two real empty batches sent by relayers: `multicall` `0x219dd27132aab142346a9fa7178e1997f0381f3611797b47831e7de22fb603c6` and `tryMulticall` `0x1cc3f068548e0e812df856b9afbe582253ed45f1cb1184c3df0fa8d8c94606c8`. HyperSync searched the whole chain. It found 5,794 successful `multicall` and 29 `tryMulticall` transactions, and every one is a relayer fill, a slow-fill request or an empty batch. No real user batch exists. An encoded user batch, a `depositV3` and a `depositV3Now` taken from real transactions, renders correctly in both runners. It cannot be committed because of the runner conflict on nested `interpolatedIntent` (see PR #3175).
 
 **Checks.** Lint at the registry pin: 0 errors, 27 warnings (26 missing formats for excluded functions, 1 intent too long). Sourcify runner `9d6d2fe4` 11/11, Rust runner `65af2281` 11/11. A language-model agent added the `calldata` fields and tests by hand. `claims` was not run again, because neither function moves funds by itself.
+
+## Update: destination chain names and destination amount
+
+Add this to the PR #3173 description. It supersedes the earlier text on `destinationChainId`, `outputAmount` and the destination-chain enum, including items 4 and 6 of "What the screens say" and the related flags and tool limitations.
+
+**Coverage.** No function is added or removed. In the five deposit functions, two fields change:
+- **Destination Chain** (`destinationChainId`) uses the ERC-7730 `chainId` format. The wallet names the chain from the EIP-155 chain registry. The `destinationChain` enum is removed.
+- **Relayer Must Send** (`outputAmount`, earlier "Output Amount (raw)") uses `tokenAmount`. The token is `outputToken` (`outputToken.[12:32]` in the `bytes32` variants), and `chainIdPath` is `#.destinationChainId`, so the wallet scales the amount with the token's decimals on the destination chain, not on Ethereum.
+
+Output Token (dest.) stays raw. In `speedUpDeposit` and `speedUpV3Deposit`, New Output stays raw: their arguments contain no destination chain id and no output token, because both are fixed in the original deposit, and the signed hash uses the origin chain id (SpokePool.sol lines 861-870).
+
+**What the screens say (changes).**
+- **Destination Chain.** The name comes from the EIP-155 registry, for example "Polygon Mainnet", "Arbitrum One", "Robinhood Chain". The contract does not check `destinationChainId`; it only emits it (line 1453). Known gaps of the registry: Across uses 999 for HyperEVM, but the registry lists 999 as "Wanchain Testnet", and Across's Solana id 34268394551451 has no registry entry (see the spec-limitation notes).
+- **Relayer Must Send.** The origin chain does not check `outputAmount`: `_depositV3` checks only that `outputToken` is not zero (line 1388), then emits the amount (line 1452). On the destination chain, a fill sends exactly this amount of `outputToken` from the relayer to the recipient (lines 996, 1798, 1808-1813). The relay hash covers every deposit argument (line 1376), so a relayer is refunded only for a fill of exactly this deposit. The amount is not a guarantee to the recipient: the depositor can sign a lower amount with a speed-up (lines 1122-1133), and a slow fill pays an amount set by the root bundle (lines 1236-1238, 1256). When the output token is wrapped native, an EOA recipient gets native token (lines 1803-1809).
+- If a wallet does not implement `chainIdPath`, it resolves `outputToken` on Ethereum. None of the five output tokens in the tests has code on Ethereum, so such a wallet shows the raw amount with an "unknown token" warning.
+
+**Tests.** The same 11 cases. The test data now holds the five destination tokens, each read on its own chain: WETH on Robinhood Chain, USDC on Arbitrum One, USDC on Polygon, WETH on Linea, WETH on Base. The expected values are the spec renderings: the destination chain's registry name and the output amount scaled with the destination token's decimals. Logging added to both runners showed that each output token is looked up with the destination chain id.
+
+**Checks.**
+- Lint at the registry pin: 0 errors, 27 warnings. `chainIdPath` is written as `#.destinationChainId`. The relative form `destinationChainId` means the same, but the pinned linter does not resolve it for `tokenAmount` and reports false "field does not exist" errors.
+- Sourcify runner `9d6d2fe4`: 11/11. Rust runner `65af2281`: 8/11. It fails `deposit-1`, `deposit-eth` and `depositV3-eth`, because it renders chain 4663 as "Chain 4663" instead of "Robinhood Chain": its chain-name table has only 16 entries. This is a runner bug, and the tests keep the spec value. Also found in the Rust runner: when a chain id does not fit in 64 bits, it shows "Chain 0" and resolves the token on the signing chain.
+- A language-model agent made these changes by hand. `claims` was not run again: the changed fields take effect on the destination chain, which a fork of Ethereum cannot test.
+

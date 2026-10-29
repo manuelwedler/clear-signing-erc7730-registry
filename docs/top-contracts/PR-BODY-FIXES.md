@@ -55,3 +55,11 @@ Done in the code and in the docs; only the PR descriptions are left.
 - **Done:** each report ends with a new "Update" section ("L2 calls decoded with `chainId`" for Base and Blast, "`mint` tick range shown" for Uniswap). The spec-limitation notes have new workaround lines (Base: cross-chain calldata and aliasing; Blast: cross-chain calldata and the bytes argument; Uniswap: price ranges given as ticks).
 - **To do:** add those update sections to the three descriptions, together with items 2 and 5, and use the permalinks of item 1. The Base and Blast descriptions must say that schema validation and lint fail on `chainId` until the schema change is released, and Blast must name the two Rust runner failures.
 
+## 7. Across (#3173): chain names and destination amount
+
+Done in the code and in the docs; only the PR description is left.
+
+- **Done:** `destinationChainId` uses the `chainId` format, and `outputAmount` is a `tokenAmount` on the destination chain, labelled "Relayer Must Send". Pushed to `claude/nifty-euler-gwsa66-across`.
+- **Done:** the report ends with "Update: destination chain names and destination amount". The spec-limitation notes have a new body for "Output amount denominated in a token on another chain" and a new section "Chain id named from a registry that does not match the protocol's ids".
+- **To do:** add the update section to the #3173 description, together with item 2, and use the permalinks of item 1. It must name the three Rust runner failures.
+
