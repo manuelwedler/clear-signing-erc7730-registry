@@ -57,3 +57,12 @@ Spec and schema changes found while writing the top-contracts descriptors. An is
   - **#3174 Base:** `OptimismPortal2.depositTransaction._value` ("ETH Sent on L2") with `chainId: 8453`. Today the chain is only in the label.
   - **#3172 Blast:** `OptimismPortal.depositTransaction._value` ("ETH to Send on L2") with `chainId: 81457`.
   - Any OP Stack portal with a custom gas token, where the label workaround would show the wrong currency.
+
+## 7. `specialValues` on every format, not only `date`
+
+- **Problem:** contracts give special meaning to exact values: zero or the maximum integer for "no limit" or "everything", the zero address for "this contract" or "nobody". The spec has `threshold` / `message` only on `amount` and `tokenAmount`, and ethereum/ERCs PR 2027 ("Update ERC-7730: add specialValues to the date format", open, checked 2026-10-29 at commit `aae5348`) adds a `specialValues` map to `date` only. Other formats, and in particular `addressName`, `raw` and `unit`, cannot label a special value. The visibility rules cannot replace a value with a text either.
+- **Proposal:** extend PR 2027's `specialValues` to every field format: keys are decimal strings for integer types and checksummed or lowercase hex strings for addresses and bytes, and values are the text to display for that exact value. A wallet MUST display the mapped text when the value matches. This could be a change request on PR 2027 itself rather than a separate proposal.
+- **Which of our PRs would benefit and how:**
+  - **#3175 Uniswap:** `collect.params.recipient` with `{"0x0000000000000000000000000000000000000000": "This contract (any caller can sweep)"}`, instead of a raw zero address explained in the sentence. `collect.params.amount0Max` and `amount1Max` with `{"340282366920938463463374607431768211455": "All owed"}`, instead of a 39-digit number.
+  - **#3173 Across:** `exclusiveRelayer` with `{"0x0000…0000": "Any relayer"}` and `exclusivityParameter` with `{"0": "No exclusivity"}`, so both could be shown instead of hidden.
+

@@ -93,3 +93,10 @@ Done in the code and in the docs; only the PR description is left.
 - **Done:** the report ends with "Update: token maps, `swapTokensToTokens` and `redeemDueInterestAndRewardsV2`". The spec-limitation notes have a rewritten "Token that only an on-chain read of another argument can name" section and a new "Amount known only at execution, reported by caller-named contracts" section.
 - **To do:** add the update section to the #3176 description, together with item 2, and use the permalinks of item 1. It must say that the Rust runner cannot run the file and that the descriptor is 392 KB.
 
+## 12. Uniswap (#3175): spec-limitation notes cleaned up
+
+Docs only; no descriptor change.
+
+- **Done:** in `docs/spec-limitations/uniswap-UniswapV3NonfungiblePositionManager.md`, the two sections about the zero `collect` recipient ("No sentinel for a special address value" and "Zero address that stands for this contract") are merged into one, which also explains why the visibility rules cannot help. The storage-token section now says why a map cannot help (1,244,243 positions). The integer-sentinel and zero-address sections point to wishlist item 7 (`specialValues` on every format, extending ethereum/ERCs PR 2027).
+- **To do:** use the permalinks of item 1 for the #3175 description, so it links the cleaned-up notes.
+
