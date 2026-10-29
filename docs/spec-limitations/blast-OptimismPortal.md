@@ -15,11 +15,11 @@
 ## Cross-chain embedded calldata is not schema-valid
 - **What the signer should see:** `depositTransaction._data` and the messenger's `sendMessage._message` decoded as calls on Blast (chain 81457). For the deposit: callee `_to`, value `_value`, sender the depositor's L2 account. For `sendMessage`: callee `_target`, sender the L2 messenger.
 - **What the spec cannot express:** the spec text ("Field formats > calldata") lists `chainId`/`chainIdPath`, but `specs/erc7730-v2.schema.json` `$format/calldataParameters` has `additionalProperties: false` without them, and the pinned linter rejects them. Both registry runners render the field correctly with `chainId`.
-- **Workaround in this descriptor:** the bytes are shown raw. Leaving out `chainId` would make wallets resolve the callee on chain 1, which is wrong.
+- **Workaround in this descriptor:** `depositTransaction._data` and `sendMessage._message` already use the `calldata` format with `chainId: 81457`, as the ERC text describes, and `_isCreation` is pinned to false because creation data is not calldata. Until the schema change is released, the registry's schema validation and lint fail on these two fields. Both registry runners render them; with no descriptor for the callee on Blast, they show the call data raw.
 - **Proposed spec improvement:** add `chainId` (integer) and `chainIdPath` to `calldataParameters` in the schema and to the linter model.
 
 ## A bytes argument whose meaning depends on another argument
 - **What the signer should see:** on L1BlastBridge `bridgeERC20` for USDC or USDT, `_extraData` is a uint256 minimum DAI output (USDConversions lines 138-142). For DAI and stETH it is ignored.
 - **What the spec cannot express:** there is no field that is visible only for some values of another field, and no defined result for a slice beyond the end of the bytes. With `_extraData.[0:32]` as `tokenAmount`, the runners agree on 32-byte data, but on empty data Sourcify shows "0 DAI" and Rust shows `<unresolved>`.
-- **Workaround in this descriptor:** the bytes are shown raw, labelled "Min Out (USDC/USDT)".
+- **Workaround in this descriptor:** `_extraData.[0:32]` is shown as a DAI `tokenAmount` labelled "Min DAI if USDC/USDT", so the label carries the condition. For a DAI or stETH bridge the data is empty: the Sourcify runner shows "0 DAI" and the Rust runner shows `<unresolved>`, so the Rust runner fails those two test cases until the slice behaviour is defined and the runner is fixed.
 - **Proposed spec improvement:** a `visible` rule conditioned on another path, and a defined out-of-range slice behaviour.

@@ -166,3 +166,13 @@ Add this to the PR description as well.
 - **Aliasing note:** `depositTransaction` now opens with a constant field, `{ "label": "Note", "value": "From a contract wallet, the ETH is credited to its aliased address on Blast.", "format": "raw" }`. A field with a literal `value` and no `path` is allowed by the spec to display a constant. The portal credits a non-EOA sender's ETH to its L1-to-L2 alias, the address plus `0x1111000000000000000000000000000000001111`, not to the same address on Blast. A Safe user who expects the ETH at the Safe's own address on Blast would otherwise be surprised.
 - **Tests:** the expected screens of both `depositTransaction` cases include the note and the new gas format. The full CI check passes, and both runners pass every case.
 
+## Update: L2 calls decoded with `chainId`, and the DAI minimum
+
+Add this to the PR #3172 description as well.
+
+- **L2 calls:** `OptimismPortal.depositTransaction._data` is now a `calldata` field: callee `_to`, `chainId: 81457`, amount `_value`, spender `@.from`. `L1CrossDomainMessenger.sendMessage._message` is now a `calldata` field: callee `_target`, `chainId: 81457`, amount `@.value`, spender the L2 messenger `0x4200000000000000000000000000000000000007`. `_isCreation` is now pinned to false, because creation data is not calldata. When no descriptor exists for the callee on Blast, the wallet shows the call data raw, as the spec allows.
+- **Schema status:** the ERC-7730 text lists `chainId` for the `calldata` format, but the v2 schema and the registry linter do not accept it yet. A schema change (minor release 2.2.0) is being proposed on ethereum/ERCs, with a matching linter change. Until both are released, the registry's schema validation and lint report errors on these two fields. Every other check passes.
+- **DAI minimum:** `L1BlastBridge.bridgeERC20` and `bridgeERC20To` now show `_extraData.[0:32]` as a DAI amount labelled "Min DAI if USDC/USDT", instead of raw bytes. For USDC and USDT, the bridge decodes exactly 32 bytes of `_extraData` as the minimum DAI from the Curve swap, which sets the minimum USDB minted (USDConversions.sol lines 130-142). For DAI and stETH the data is ignored and empty.
+- **Runner difference:** for the empty data of the DAI and stETH cases, the Sourcify runner renders "0 DAI" and the Rust runner renders `<unresolved>`. The expected value follows the Sourcify runner, so the Rust runner fails those two cases. The spec does not define slices past the end of the data (see the spec-limitation notes).
+- **Tests:** the expected screens are updated. Both registry runners pass every other case.
+

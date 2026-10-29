@@ -180,3 +180,11 @@ Paste this section into PR #3175. It supersedes the earlier text on `multicall`.
 **Checks.** Lint at the registry pin: 0 errors, 2 warnings. Sourcify runner `9d6d2fe4` 20/20, Rust runner `65af2281` 20/20. The eight real batches: Sourcify 8/8, and Rust 8/8 with the nested `interpolatedIntent` removed. A language-model agent added the `calldata` format and the tests by hand, because clear-signing-helper does not support that format. `claims` was not run again for these changes.
 
 **Tool limitation (runners).** For an inner format with an `interpolatedIntent`, no `expected` block passes both runners. Sourcify (`compareNestedDisplay`) requires the nested `interpolatedIntent`. The Rust runner's `NestedExpected` uses `deny_unknown_fields` and rejects it. Either runner needs a fix before real nested cases can be committed.
+
+## Update: `mint` tick range shown
+
+Add this to the PR #3175 description as well. It supersedes the earlier text on hidden ticks.
+
+- `mint` now shows `tickLower` and `tickUpper` raw as "Lower Tick" and "Upper Tick", instead of hiding them. They were hidden only because strict portability flags negative signed integers for some Ledger devices. Both registry runners render them correctly, for example `-288400` and `-286600` for the real mint `0x2abd4dd0…bb62`.
+- A raw tick is still not readable as a price (see the spec-limitation notes), but the signer can now see the range.
+- The full CI check passes: lint 0 errors, both runners 20/20.

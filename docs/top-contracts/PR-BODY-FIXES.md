@@ -47,3 +47,11 @@ Done in the code and in the docs; only the PR descriptions are left.
 - **Done:** the reports end with an "Update: gas unit and aliasing note on `depositTransaction`" section. The aliasing sections of `docs/spec-limitations/base-OptimismPortal2.md` and `docs/spec-limitations/blast-OptimismPortal.md` name the new workaround.
 - **To do:** add that update section to the descriptions of #3174 and #3172, together with item 2, and use the permalinks of item 1.
 
+## 6. Base (#3174), Blast (#3172) and Uniswap (#3175): features now implemented
+
+Done in the code and in the docs; only the PR descriptions are left.
+
+- **Done:** Base and Blast decode `depositTransaction._data` and `sendMessage._message` with the `calldata` format and `chainId`. Base drops the `_data` pin, and Blast pins `_isCreation`. Blast shows the `_extraData` DAI minimum. Uniswap shows the `mint` ticks. All pushed to the PR branches.
+- **Done:** each report ends with a new "Update" section ("L2 calls decoded with `chainId`" for Base and Blast, "`mint` tick range shown" for Uniswap). The spec-limitation notes have new workaround lines (Base: cross-chain calldata and aliasing; Blast: cross-chain calldata and the bytes argument; Uniswap: price ranges given as ticks).
+- **To do:** add those update sections to the three descriptions, together with items 2 and 5, and use the permalinks of item 1. The Base and Blast descriptions must say that schema validation and lint fail on `chainId` until the schema change is released, and Blast must name the two Rust runner failures.
+

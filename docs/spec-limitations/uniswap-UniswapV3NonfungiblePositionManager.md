@@ -21,7 +21,7 @@
 ## Price ranges given as ticks
 - **What the signer should see:** `mint` sets the position's price range with `tickLower` and `tickUpper`; the price bound is `1.0001^tick` scaled by the two tokens' decimals. The signer should read "Range: 1,800 to 2,200 USDC per WETH".
 - **What the spec cannot express:** no format applies an exponent or a decimals ratio of two other fields; `unit` only scales by a power of ten ("Field formats > unit").
-- **Workaround in this descriptor:** the ticks are hidden (`visible: "never"`). A raw tick is not readable as a price, and the registry's pinned runners misrender negative signed integers, which every real mint has, so `--strict-portability` rejected them shown. The maximums, minimums and recipient bound what the call takes for any tick (LiquidityManagement.sol line 88), so the screen stays true, but the signer does not see the price range.
+- **Workaround in this descriptor:** the ticks are shown raw as "Lower Tick" and "Upper Tick". A raw tick is not readable as a price, but the signer can at least see and compare the range. Strict portability flags negative signed integers for some Ledger devices; both registry runners render them correctly.
 - **Proposed spec improvement:** a `tick` (or general `exponential`) integer format with parameters `base` (1.0001), `decimals0Path`, `decimals1Path` and an `invert` flag, rendering the price of one token in the other.
 
 ## Q64.96 square-root prices

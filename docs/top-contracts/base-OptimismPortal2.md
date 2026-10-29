@@ -200,3 +200,11 @@ Add this to the PR description as well.
 - **Aliasing note:** `depositTransaction` now opens with a constant field, `{ "label": "Note", "value": "From a contract wallet, the ETH is credited to its aliased address on Base.", "format": "raw" }`. A field with a literal `value` and no `path` is allowed by the spec to display a constant. The portal credits a non-EOA sender's ETH to its L1-to-L2 alias, the address plus `0x1111000000000000000000000000000000001111`, not to the same address on Base. A Safe user who expects the ETH at the Safe's own address on Base would otherwise be surprised.
 - **Tests:** the expected screens of both `depositTransaction` cases include the note and the new gas format. The full CI check passes, and both runners pass every case.
 
+## Update: L2 calls decoded with `chainId`
+
+Add this to the PR #3174 description as well.
+
+- **L2 calls:** `OptimismPortal.depositTransaction._data` is now a `calldata` field: callee `_to`, `chainId: 8453`, amount `_value`, spender `@.from`. `L1CrossDomainMessenger.sendMessage._message` is now a `calldata` field: callee `_target`, `chainId: 8453`, amount `@.value`, spender the L2 messenger `0x4200000000000000000000000000000000000007`. The `mustMatch ["0x"]` pin on the deposit data is removed, so deposits that call a contract on Base are clear-signed. When no descriptor exists for the callee on Base, the wallet shows the call data raw, as the spec allows.
+- **Schema status:** the ERC-7730 text lists `chainId` for the `calldata` format, but the v2 schema and the registry linter do not accept it yet. A schema change (minor release 2.2.0) is being proposed on ethereum/ERCs, with a matching linter change. Until both are released, the registry's schema validation and lint report errors on these two fields. Every other check passes.
+- **Tests:** the expected screens are updated. Both registry runners pass every other case.
+
