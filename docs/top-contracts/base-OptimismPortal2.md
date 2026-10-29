@@ -205,7 +205,7 @@ Add this to the PR description as well.
 Add this to the PR #3174 description as well.
 
 - **L2 calls:** `OptimismPortal.depositTransaction._data` is now a `calldata` field: callee `_to`, `chainId: 8453`, amount `_value`, spender `@.from`. `L1CrossDomainMessenger.sendMessage._message` is now a `calldata` field: callee `_target`, `chainId: 8453`, amount `@.value`, spender the L2 messenger `0x4200000000000000000000000000000000000007`. The `mustMatch ["0x"]` pin on the deposit data is removed, so deposits that call a contract on Base are clear-signed. When no descriptor exists for the callee on Base, the wallet shows the call data raw, as the spec allows.
-- **Schema status:** the ERC-7730 text lists `chainId` for the `calldata` format, but the v2 schema and the registry linter do not accept it yet. A schema change (minor release 2.2.0) is being proposed on ethereum/ERCs, with a matching linter change. Until both are released, the registry's schema validation and lint report errors on these two fields. Every other check passes.
+- **Schema status:** the ERC-7730 v2 schema allows `chainId` and `chainIdPath` in the `calldata` format since ethereum/ERCs PR 2124, synced into this registry by #3180, and this branch includes that sync. Schema validation passes. The pinned registry linter does not know the two parameters yet and reports two errors per `chainId` field; that is a linter update, not a descriptor problem.
 - **Tests:** the expected screens are updated. Both registry runners pass every other case.
 
 ## Update: L2 token shown as a ticker

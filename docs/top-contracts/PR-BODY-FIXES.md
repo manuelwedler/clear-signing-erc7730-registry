@@ -53,7 +53,7 @@ Done in the code and in the docs; only the PR descriptions are left.
 
 - **Done:** Base and Blast decode `depositTransaction._data` and `sendMessage._message` with the `calldata` format and `chainId`. Base drops the `_data` pin, and Blast pins `_isCreation`. Blast shows the `_extraData` DAI minimum. Uniswap shows the `mint` ticks. All pushed to the PR branches.
 - **Done:** each report ends with a new "Update" section ("L2 calls decoded with `chainId`" for Base and Blast, "`mint` tick range shown" for Uniswap). The spec-limitation notes have new workaround lines (Base: cross-chain calldata and aliasing; Blast: cross-chain calldata and the bytes argument; Uniswap: price ranges given as ticks).
-- **To do:** add those update sections to the three descriptions, together with items 2 and 5, and use the permalinks of item 1. The Base and Blast descriptions must say that schema validation and lint fail on `chainId` until the schema change is released, and Blast must name the two Rust runner failures.
+- **To do:** add those update sections to the three descriptions, together with items 2 and 5, and use the permalinks of item 1. The Base and Blast descriptions must say that schema validation passes since the registry spec sync (#3180) and that lint fails on `chainId` until the linter is updated, and Blast must name the two Rust runner failures.
 
 ## 7. Across (#3173): chain names and destination amount
 
@@ -78,4 +78,10 @@ Done in the code and in the docs; only the PR description is left.
 - **Done:** the override enum and complementary `ifNotIn` lists for the destination chain; `tokenTicker` with `chainIdPath` for the output token (on the full bytes32 value in the bytes32 variants); `addressName` on the bytes32 depositor; two encoded cases (HyperEVM, Solana) and three real tagged app deposits. Pushed to `claude/nifty-euler-gwsa66-across`.
 - **Done:** the report ends with "Update: chain names, output token, depositor, and app deposits with an integrator tag". The spec-limitation notes are rewritten: the "Output amount denominated in a token on another chain" section is removed (it is the intended design, not a limitation), the bytes32 and chain-name sections describe the new workarounds, and the ABI-encoded message section points to wishlist items 2 and 5.
 - **To do:** replace the Across parts of the #3173 description with this update, together with items 2 and 7, and use the permalinks of item 1. The description must name the seven Sourcify runner failures.
+
+## 10. All PRs: upstream master merged (spec sync #3180)
+
+- **Done:** the common branch and the PR branches of #3171, #3173 and #3175 include upstream master with the ERC-7730 spec sync (#3180). #3172, #3174 and #3176 follow once their running work is committed.
+- **Done:** the "Cross-chain embedded calldata is not schema-valid" sections are removed from the Base and Blast spec-limitation notes, because the schema now allows `chainId`. The Base and Blast reports say that schema validation passes and only lint fails on `chainId`.
+- **To do:** in the #3174 and #3172 descriptions, drop any claim that `chainId` is not schema-valid, and link the spec-limitation notes with the permalinks of item 1.
 

@@ -6,12 +6,6 @@
 - **Workaround in this descriptor:** the field label carries the chain ("ETH Sent on L2") and the sentence separates the two amounts ("Bridge {@.value} to Base, send {_value} to {_to}"). The currency is correct because Base uses ETH as its native currency, which was checked on chain (`SystemConfig.isFeatureEnabled("CUSTOM_GAS_TOKEN")` is false).
 - **Proposed spec improvement:** add the optional `chainId` / `chainIdPath` parameters of `tokenAmount` to the `amount` format, with the same semantics: the wallet renders the value in the native currency of that chain.
 
-## Cross-chain embedded calldata is not schema-valid
-- **What the signer should see:** the call that `depositTransaction(_data)` and `sendMessage(_message)` make on Base, decoded with the Base descriptor of the callee. For example, a 1inch swap on Base funded by the deposit.
-- **What the spec cannot express:** the spec text ("Field formats > calldata") lists `chainId`/`chainIdPath`, but `specs/erc7730-v2.schema.json` `$format/calldataParameters` allows only callee, selector, amount and spender (with their Path forms) and sets `additionalProperties: false`. The pinned linter rejects `chainId`. Without it, a wallet resolves the L2 callee on chain 1.
-- **Workaround in this descriptor:** `depositTransaction._data` and `sendMessage._message` already use the `calldata` format with `chainId: 8453`, as the ERC text describes, and the deposit's `mustMatch ["0x"]` pin on `_data` is gone. Until the schema change is released, the registry's schema validation and lint fail on these two fields. Both registry runners render them; with no descriptor for the callee on Base, they show the call data raw.
-- **Proposed spec improvement:** add `chainId` and `chainIdPath` to `calldataParameters` in the v2 schema, as the spec text already describes.
-
 ## Embedded-call spender cannot express L1-to-L2 address aliasing
 - **What the signer should see:** the account the L2 call runs as: the signer's address for an EOA, and the signer plus `0x1111000000000000000000000000000000001111` for a contract signer (OptimismPortal2.sol lines 589-592).
 - **What the spec cannot express:** `spender`/`spenderPath` ("Field formats > calldata") takes an address or a path, with no transform. `@.from` would be wrong for a Safe or another contract depositor.

@@ -35,13 +35,13 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
 ## To do: runners and library limits (added 2026-10-29)
 - **Fix the Rust runner ourselves when registry CI fails on it.** Two known gaps: it renders a byte slice past the end of the data as `<unresolved>` where the Sourcify runner renders 0 (Blast `_extraData.[0:32]`), and its `NestedExpected` rejects a nested `interpolatedIntent` that the Sourcify runner requires.
 - **Features that were avoided because of a library or device limit are now implemented (2026-10-29):**
-  - Base #3174 and Blast #3172: L2 calls use the `calldata` format with `chainId`. Registry schema validation and lint fail on these fields until the ERC-7730 schema change (2.2.0) and the linter change are released.
+  - Base #3174 and Blast #3172: L2 calls use the `calldata` format with `chainId`. Schema validation passes since the registry synced the spec (#3180); lint fails on these fields until the linter change is released.
   - Blast #3172: `_extraData` is a DAI `tokenAmount` slice. The Rust runner fails two cases on empty data (`<unresolved>`); fix the runner.
   - Uniswap #3175: the `mint` ticks are shown. Both runners render them correctly.
   - Across #3173: `destinationChainId` uses the `chainId` format plus an override enum for 14 ids, `outputAmount` and the output token use the destination chain, and the bytes32 depositor uses `addressName`. The Sourcify runner fails seven cases (address formats on bytes32).
   - Pendle #3176 (maps, `swapTokensToTokens`, `redeemDueInterestAndRewardsV2`): in progress.
   - All: clear-signing-helper does not support the `calldata` format, so those fields are added by hand.
-- **Expected CI state:** Base and Blast will show schema and lint errors on `chainId`, and Blast will show two Rust runner failures, until the items above are fixed upstream. Everything else should pass.
+- **Expected CI state:** Base and Blast show lint errors on `chainId` until the linter is updated, Blast shows two Rust runner failures, and Across shows seven Sourcify runner failures (address formats on bytes32). Everything else should pass.
 - **Rust runner bugs to fix (found 2026-10-29):** its chain-name table has 16 entries and shows other chains as "Chain <id>" (render_shared.rs line 18); a chain id above 64 bits shows "Chain 0" and resolves the token on the signing chain (engine.rs lines 2307-2334); the byte-slice and nested `interpolatedIntent` gaps listed above.
 - **Linter bug to report or fix (sourcifyeth/python-erc7730 at 964176e):** `resolve_token_amount_parameters` does not resolve a relative `chainIdPath` (parameters.py lines 219 and 285), so `"chainIdPath": "destinationChainId"` gives false errors. Across uses `#.destinationChainId` until it is fixed.
 - **Across chain id 999: resolved.** An override enum names 999 "HyperEVM" and Solana "Solana", and also the ids the Rust runner cannot name.
@@ -53,7 +53,7 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
 - **Rust runner:** accepts it.
 
 ## ERC-7730 `chainId` in `calldata` (ethereum/ERCs PR 2124)
-- The schema change is proposed in ethereum/ERCs PR 2124 and treated as merged. Our CI check validates against its v2 schema, and schema validation passes for Base and Blast.
+- The schema change is in ethereum/ERCs PR 2124 and was synced into the registry by #3180 (2026-10-29). The common branch and all six PR branches include upstream master with that sync, so schema validation passes.
 - **To do:** the registry linter (sourcifyeth/python-erc7730) must accept `chainId` / `chainIdPath` in the `calldata` parameters. Until then, lint reports two errors per `chainId` field in the Base and Blast descriptors. After the linter change, bump the linter pin in the registry.
-- **To do:** the registry syncs `specs/` from ethereum/ERCs with its sync-specs workflow; check that the synced v2 schema includes the change after PR 2124 merges.
+- Done: the registry synced `specs/` from ethereum/ERCs with the change (#3180).
 
