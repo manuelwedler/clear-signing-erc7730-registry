@@ -127,3 +127,8 @@ Docs only; no descriptor change.
 - **Done:** the report ends with "Update: PT, YT and SY amounts shown raw, maps removed". The spec-limitation section "Token that only an on-chain read of another argument can name" describes the new workaround.
 - **To do:** in the #3176 description, drop the map text of item 11 and add this update section, with the permalinks of item 1. The description must no longer say that the Rust runner cannot run the file.
 
+## 17. SwftSwap (#3171): BNB Chain deployment
+
+- **Done:** SwftSwap on chain 56 is verified on Sourcify (runtime match). The descriptor has the chain 56 deployment and one real chain 56 test case. Both runners pass 10/10. The report ends with "Update: BNB Chain deployment".
+- **To do:** add that update to the #3171 description, and change any text that says BNB Chain is not covered.
+

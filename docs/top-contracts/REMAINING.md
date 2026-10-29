@@ -64,4 +64,7 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
 - `AGENT-INSTRUCTIONS.md` in this folder holds one instruction per remaining task, each with the repository to run it on: PR descriptions and ready for review, the Rust runner, the linter, the Sourcify library and runner, the registry pin bumps with the nested test cases, SwftSwap on BNB Chain, and the wishlist issue.
 - The spec wishlist goes to an issue in ethereum/clear-signing-erc7730-registry, not to ethereum/ERCs.
 - The nested-call test cases are in `nested-tests/` in this folder, regenerated against the current descriptors.
+- Ran on 2026-10-29: 1 (PR descriptions, ready for review), 2 (Rust runner), 3 (linter), 4 (Sourcify library and runner), 6a (SwftSwap verified on Sourcify for chain 56, deployment and test added, both runners 10/10) and 6b (wishlist issue). This session cannot read the upstream PRs to check the results.
+- Still to run: 5 (pin bumps and nested test cases), after the fixes of 2, 3 and 4 are merged and released.
+- Still to do: the #3171 description must get the BNB Chain update (fix list item 17), because 6a ran in parallel with 1. And one issue in portdeveloper/clear-signing-helper with the list in HELPER-IMPROVEMENTS.md.
 
