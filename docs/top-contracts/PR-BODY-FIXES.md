@@ -100,3 +100,10 @@ Docs only; no descriptor change.
 - **Done:** in `docs/spec-limitations/uniswap-UniswapV3NonfungiblePositionManager.md`, the two sections about the zero `collect` recipient ("No sentinel for a special address value" and "Zero address that stands for this contract") are merged into one, which also explains why the visibility rules cannot help. The storage-token section now says why a map cannot help (1,244,243 positions). The integer-sentinel and zero-address sections point to wishlist item 7 (`specialValues` on every format, extending ethereum/ERCs PR 2027).
 - **To do:** use the permalinks of item 1 for the #3175 description, so it links the cleaned-up notes.
 
+## 13. Pendle (#3176): nested-call limitation mapped to the wishlist
+
+Docs only; no descriptor change.
+
+- **Done:** the section "Nested call that the intermediary rewrites, or that is calldata only for some values of another field" in `docs/spec-limitations/pendle-PendleRouterV4.md` now splits the proposed fix by cause, says that prepending bytes does not help, and points to wishlist items 3 and 5.
+- **To do:** use the permalinks of item 1 for the #3176 description, so it links the updated notes.
+
