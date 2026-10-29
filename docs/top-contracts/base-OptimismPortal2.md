@@ -215,3 +215,13 @@ Add this to the PR #3174 description as well.
 - The "Token on Base" field of the ERC-20 deposit and bridge functions (`_remoteToken` or `_l2Token`) now uses the ERC-7730 `tokenTicker` format with `chainId: 8453`, instead of a raw address. The spec lets `tokenTicker` take the chain on which the token is deployed, and the wallet resolves the ticker there.
 - The test data holds the L2 tokens of the test cases (UNI, cbETH, OLAS and BORING), each read with `symbol()`, `name()` and `decimals()` on Base. None of them has code on Ethereum. Both registry runners render the tickers.
 
+
+## Update: L2ToL1MessagePasser on Base
+
+Add this to the PR #3174 description as well.
+
+- **New descriptor:** `registry/base/calldata-L2ToL1MessagePasser.json`, the OP Stack predeploy `0x4200000000000000000000000000000000000016` on Base (chain 8453). It starts every withdrawal to Ethereum. Users call it directly or through the L2 bridges and messenger. 70,869 of its 70,997 historical calls are `initiateWithdrawal`.
+- **Described functions:** `initiateWithdrawal(address _target,uint256 _gasLimit,bytes _data)` and `burn()`. The ETH sent (`@.value`), the L1 target, the minimum L1 gas (the `unit` format with `base: "gas"`) and the L1 call are shown. `_data` is a `calldata` field with callee `_target`, `chainId: 1`, amount `@.value` and spender the Base portal `0x49048044D57e1C92A77f79988d21Fa8fAF74E97e`, because the portal makes the L1 call at finalization (OptimismPortal2 `finalizeWithdrawalTransaction`). So a withdrawal that relays a message to the L1 messenger or bridge is decoded with the descriptors of this PR.
+- **Tests:** four real transactions (`burn`, a plain ETH withdrawal, an ETH withdrawal with a call, and a token transfer call). Both registry runners pass every case. Lint reports only the two known errors on `chainId` in `calldata`.
+- **Not added:** `CrossDomainDeposit` (`0xE2fd97cdD6182C1223ff8Bc6344abAF7132b51D5` on Base) is a third-party contract, not Base's, so it does not belong in this entity folder.
+- **Upstream merged:** this branch now includes upstream master with the spec sync #3180.

@@ -9,7 +9,7 @@
 ## ETH paid at finalization is a state-dependent fraction of the shown value
 - **What the signer should see:** `finalizeWithdrawalTransaction` pays `_tx.value × sharePrice / 1e27` to the target, where `sharePrice ≤ 1e27` is read from the yield manager's checkpoint (WithdrawalQueue.sol `_calculateClaimableEther`, `_finalize`). The signer should see the real payout, not only its upper bound.
 - **What the spec cannot express:** a field value computed from contract state or from arithmetic on another field. Field formats take a path or a literal value only (Field format specification > `path` / `value`); the spec deliberately has no on-chain read at display time (Security Considerations > External data resolution).
-- **Workaround in this descriptor:** the amount is labelled "Maximum Amount" and the sentence says "up to {_tx.value}".
+- **Workaround in this descriptor:** the amount is labelled "Maximum Amount" and the sentence says "up to {_tx.value}". The L2ToL1MessagePasser on Blast, where a withdrawal starts, cannot know the share price at finalization either, so its sentence ends with "the L1 payout can be lower".
 - **Proposed spec improvement:** none that keeps the spec free of external calls. If the spec ever admits state reads, a `scaledAmount` format with a `ratioPath` or `ratioCall` and an explicit precision would cover withdrawal queues of this kind (Lido and Blast share the share-price design).
 
 ## A bytes argument whose meaning depends on another argument

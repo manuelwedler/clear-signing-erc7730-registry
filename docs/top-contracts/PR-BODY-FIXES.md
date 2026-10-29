@@ -81,7 +81,7 @@ Done in the code and in the docs; only the PR description is left.
 
 ## 10. All PRs: upstream master merged (spec sync #3180)
 
-- **Done:** the common branch and the PR branches of #3171, #3173, #3175 and #3176 include upstream master with the ERC-7730 spec sync (#3180). #3172 and #3174 follow once their running work is committed.
+- **Done:** the common branch and the PR branches of #3171, #3173, #3175 and #3176 include upstream master with the ERC-7730 spec sync (#3180). #3172 and #3174 include it since 2026-10-29 too.
 - **Done:** the "Cross-chain embedded calldata is not schema-valid" sections are removed from the Base and Blast spec-limitation notes, because the schema now allows `chainId`. The Base and Blast reports say that schema validation passes and only lint fails on `chainId`.
 - **To do:** in the #3174 and #3172 descriptions, drop any claim that `chainId` is not schema-valid, and link the spec-limitation notes with the permalinks of item 1.
 
@@ -114,3 +114,9 @@ Docs only; no descriptor change.
 
 - **Done:** wishlist item 9 (embedded calls whose amounts the intermediary rewrites, `amountsSetAtExecution` on `calldata`) and item 10 (amounts known only at execution, and a `mustBeIn` map rule for address lists). `docs/spec-limitations/pendle-PendleRouterV4.md` now points to both items.
 - **To do:** use the permalinks of item 1 for the #3176 description, so it links the updated notes.
+
+## 15. Base (#3174) and Blast (#3172): L2 contracts added
+
+- **Done:** Base gets the L2ToL1MessagePasser. Blast gets the L2ToL1MessagePasser, the BLAST Airdrop and the AirdropVesting proxy. Both L2ToL1MessagePassers decode the L1 call with the `calldata` format and `chainId: 1`. One Blast portal test case is replaced, because its L2 callee now has a descriptor and renders a nested call. Pushed to both PR branches, together with the upstream merge.
+- **Done:** the Base and Blast reports end with a new "Update" section ("L2ToL1MessagePasser on Base", "L2ToL1MessagePasser and the BLAST airdrop contracts on Blast"). The Blast spec-limitation note on the share price mentions the L2ToL1MessagePasser sentence.
+- **To do:** add those update sections to the #3174 and #3172 descriptions, list the new files, and use the permalinks of item 1.
