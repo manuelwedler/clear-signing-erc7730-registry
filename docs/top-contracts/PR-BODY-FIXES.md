@@ -21,3 +21,17 @@ Apply the same rule to any other link into the fork in the descriptions.
 
 - #3176: replace the whole description with `docs/top-contracts/pendle-PendleRouterV4.md`.
 - #3172, #3173, #3174, #3175: apply the "Update: embedded calls" section at the end of each report in `docs/top-contracts/`. It supersedes the older text it names, such as the Base "Tool limitation" line about the `calldata` format.
+
+## 3. SwftSwap (#3171): state the trust assumption with a constant field
+
+This needs a descriptor change, not only a description change.
+
+- **Descriptor:** add a field with a literal `value` and no `path` to both `swap` and `swapEth`, as the first field. The spec allows a literal `value` instead of a `path` "to display a constant" (ERC-7730, field format specification, `path` / `value`):
+  ```json
+  { "label": "Note", "value": "Paid out off-chain by SWFT. The minimum is not enforced on-chain.", "format": "raw" }
+  ```
+  A trial on a scratch copy showed that both registry runners render it the same way, as the first field. The pinned linter reports 0 errors for it.
+- **Tests:** update the expected fields of all 9 cases in `registry/swft/testsv2/calldata-SwftSwap.tests.json`, then re-run both runners and the full CI check.
+- **Spec-limitation notes:** remove the section "No way to state that a value is a request the contract does not enforce" from `docs/spec-limitations/swft-SwftSwap.md`. The spec can express it. Then regenerate the permalinks of item 1 for the new commit.
+- **PR description:** in "What the screens say", add that the screen now shows the note, and remove the claim that the trust assumption is stated only for reviewers.
+- **Push:** the descriptor and test change go to `claude/nifty-euler-gwsa66-swft`, which updates PR #3171, and to `claude/nifty-euler-gwsa66`.
