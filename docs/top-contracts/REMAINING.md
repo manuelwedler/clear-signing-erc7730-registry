@@ -60,3 +60,8 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
 - **Rust runner:** support spec map references in `tokenAmount` `token` (general fix; no PR of ours uses maps now) (it expects a string and its own `entries`/`mapReference` map model), in addition to the nested `interpolatedIntent` gap.
 - **Linter (python-erc7730):** resolve map references instead of dropping them ("Unresolved map reference ... will be dropped"). Its Ledger conversion also drops map references. No PR of ours uses maps any more, so this is a general fix.
 
+## Agent instructions (2026-10-29)
+- `AGENT-INSTRUCTIONS.md` in this folder holds one instruction per remaining task, each with the repository to run it on: PR descriptions and ready for review, the Rust runner, the linter, the Sourcify library and runner, the registry pin bumps with the nested test cases, SwftSwap on BNB Chain, and the wishlist issue.
+- The spec wishlist goes to an issue in ethereum/clear-signing-erc7730-registry, not to ethereum/ERCs.
+- The nested-call test cases are in `nested-tests/` in this folder, regenerated against the current descriptors.
+
