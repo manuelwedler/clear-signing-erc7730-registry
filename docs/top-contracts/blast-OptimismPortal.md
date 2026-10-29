@@ -176,3 +176,10 @@ Add this to the PR #3172 description as well.
 - **Runner difference:** for the empty data of the DAI and stETH cases, the Sourcify runner renders "0 DAI" and the Rust runner renders `<unresolved>`. The expected value follows the Sourcify runner, so the Rust runner fails those two cases. The spec does not define slices past the end of the data (see the spec-limitation notes).
 - **Tests:** the expected screens are updated. Both registry runners pass every other case.
 
+## Update: L2 token shown as a ticker
+
+Add this to the PR #3172 description as well.
+
+- The "Token on Blast" field of the ERC-20 deposit and bridge functions (`_remoteToken` or `_l2Token`) now uses the ERC-7730 `tokenTicker` format with `chainId: 81457`, instead of a raw address. The spec lets `tokenTicker` take the chain on which the token is deployed, and the wallet resolves the ticker there.
+- The test data holds the L2 tokens of the test cases (BLAST, OLE, BAG and USDB), each read with `symbol()`, `name()` and `decimals()` on Blast. None of them has code on Ethereum. Both registry runners render the tickers.
+

@@ -208,3 +208,10 @@ Add this to the PR #3174 description as well.
 - **Schema status:** the ERC-7730 text lists `chainId` for the `calldata` format, but the v2 schema and the registry linter do not accept it yet. A schema change (minor release 2.2.0) is being proposed on ethereum/ERCs, with a matching linter change. Until both are released, the registry's schema validation and lint report errors on these two fields. Every other check passes.
 - **Tests:** the expected screens are updated. Both registry runners pass every other case.
 
+## Update: L2 token shown as a ticker
+
+Add this to the PR #3174 description as well.
+
+- The "Token on Base" field of the ERC-20 deposit and bridge functions (`_remoteToken` or `_l2Token`) now uses the ERC-7730 `tokenTicker` format with `chainId: 8453`, instead of a raw address. The spec lets `tokenTicker` take the chain on which the token is deployed, and the wallet resolves the ticker there.
+- The test data holds the L2 tokens of the test cases (UNI, cbETH, OLAS and BORING), each read with `symbol()`, `name()` and `decimals()` on Base. None of them has code on Ethereum. Both registry runners render the tickers.
+

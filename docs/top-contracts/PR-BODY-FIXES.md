@@ -63,3 +63,11 @@ Done in the code and in the docs; only the PR description is left.
 - **Done:** the report ends with "Update: destination chain names and destination amount". The spec-limitation notes have a new body for "Output amount denominated in a token on another chain" and a new section "Chain id named from a registry that does not match the protocol's ids".
 - **To do:** add the update section to the #3173 description, together with item 2, and use the permalinks of item 1. It must name the three Rust runner failures.
 
+## 8. Base (#3174) and Blast (#3172): L2 token ticker
+
+Done in the code and in the docs; only the PR descriptions are left.
+
+- **Done:** the "Token on Base" and "Token on Blast" fields use `tokenTicker` with the L2 chain id, and the tests hold the L2 token metadata. Pushed to both PR branches.
+- **Done:** each report ends with "Update: L2 token shown as a ticker".
+- **To do:** add that update section to the #3174 and #3172 descriptions, together with items 2, 5 and 6.
+
