@@ -69,7 +69,7 @@ All deployments are the same address, deployed by the same key (`0xa91EA6E5F9CbA
 | 137 Polygon | yes | Same bytecode check and the same Sourcify `BridgersSwap` match. Two real-transaction tests pass both runners (native renders as `POL` in both runners). |
 | 42161 Arbitrum One | yes | Same bytecode check and Sourcify `BridgersSwap` match. One real-transaction test (`swap`). |
 | 43114 Avalanche C-Chain | yes | Same bytecode check and Sourcify `BridgersSwap` match. Two real-transaction tests. |
-| 56 BNB Chain | **no** | Bytecode at the address is byte-identical to chain 1, but the contract is **not verified** on Sourcify (no record) nor on BscScan (`getsourcecode` returns an empty `ContractName`). Condition (a) of the brief is not met, and the registry linter would skip field validation for an unverifiable deployment (REVIEWING.md §2). I prepared a Sourcify verification request from the mainnet standard-JSON input, but submitting it was not permitted in this session, so it was not sent. Once SWFT or a maintainer verifies the BSC address on Sourcify, `clear-signing registry add-deployment --chain-id 56` with one real BSC transaction should add it. |
+| 56 BNB Chain | yes | Bytecode at the address is byte-identical to chain 1. Sourcify runtime match (`match: "match"`, `creationMatch: null`, matchId `57551322`), verified on 2026-10-29 from the chain 1 standard-JSON input as `SwftSwap.sol:SwftSwap`, solc 0.8.0+commit.c7dfd78e. One real-transaction test (`swap - chain 56`, `0x743753cbddfa06347c589f5fb4dc5574dd5840811f20d6335f0627081e781be3`). See "Update: BNB Chain deployment". |
 | 8453, 100, 59144, 25, 66 | no | No code at the address. |
 | 250, 324, 1284, 128 | no | The endpoint returned no matching code at the address (empty or a short non-code response); not pursued. |
 
@@ -107,3 +107,16 @@ Token metadata in `dataProvider.tokens` was read from each chain by `fixture --t
 - **Note field:** added by hand after the helper export, because the helper's decisions file has no slot for a constant field. After the change, the registry checks still pass: lint 0 errors with the same warnings, schema ok, index buildable, both runners 9/9.
 - **Not run / not verified:** no physical-device rendering; no wallet verification; no attestation. SWFT's own API documentation and deployment list were not reachable from this session, so the `toToken` string format is described from observed calls only. The BSC deployment was not added (see "Deployments").
 - **No git actions:** nothing was committed, pushed or written into the registry clone.
+
+## Update: BNB Chain deployment
+
+The BNB Chain deployment (chain 56) is now in the descriptor.
+
+- **Verification.** The chain 56 contract had no Sourcify record and no BscScan source. I fetched the standard-JSON input of the verified chain 1 contract from Sourcify (`GET /server/v2/contract/1/0xc1d1…a1b5?fields=stdJsonInput,compilation`) and submitted it unchanged for chain 56 (`POST /server/v2/verify/56/0xc1d1…a1b5`, `compilerVersion` `0.8.0+commit.c7dfd78e`, `contractIdentifier` `SwftSwap.sol:SwftSwap`). Verification job `ee447e37-368b-40bb-a1d0-9a76e3ba37d9` finished with a runtime match (`match: "match"`, `runtimeMatch: "match"`, `creationMatch: null`, matchId `57551322`, verified at 2026-10-29T14:44:08Z). There is no creation match, as on chain 1. Sourcify also forwarded the source to BscScan; I could not check the BscScan status, because its status endpoint needs an API key.
+- **Descriptor.** `context.contract.deployments` now has `{ "chainId": 56, "address": "0xc1d13492285eb664951E201BF7C80c7c6318a1b5" }`, between chains 10 and 137.
+- **Test.** New case `swap - chain 56`: transaction `0x743753cbddfa06347c589f5fb4dc5574dd5840811f20d6335f0627081e781be3` (block 130491231, status 1), sent directly to the contract by `0x7861A82E7Cd688199EC416982EdEA37f31ac165F`. It sends 771.4 USDT (BSC-USD `0x55d398326f99059ff775485246999027b3197955`) for `USDT(TRON)|zvcm92|0.015|bridgers|0`, payout `TVekziJNDzBAu2FNuqYQb5NnwK9Lu112BW`, requested minimum 764500200. I found it with `eth_getLogs` on the contract address and read the token metadata (`Tether USD`, `USDT`, 18 decimals) with `eth_call` on chain 56 (`https://bsc-rpc.publicnode.com`). The `rawTx` is the unsigned type-2 form that the other cases use (nonce 0, fees 0, gas limit 1000000), with chain ID 56 and the original calldata and value.
+- **Checks.** The test file now has 10 real-transaction cases (the 9 in "Tests" and the new one).
+  - Lint `erc7730 lint --require-verified` at `964176e28918299dfecb269e20a267a652ada475`: exit 0, 0 errors, the same 5 warnings (one "Display intent too long", four "Missing display format" for the excluded admin functions).
+  - Schema: `.github/scripts/validate-json-schemas.sh` passes for the descriptor and the test file.
+  - Sourcify runner (ref `9d6d2fe4715d53e002bb966f6593e1fbc44b53c7`): 10/10 pass. Rust runner (ref `65af2281aa1366e1d770f9ac445007e56dbe29ca`): 10/10 pass.
+  - `node tools/scripts/generate-index.js --validate`: the index is buildable.
