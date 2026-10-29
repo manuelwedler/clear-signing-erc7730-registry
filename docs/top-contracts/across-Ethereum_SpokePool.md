@@ -167,3 +167,47 @@ Output Token (dest.) stays raw. In `speedUpDeposit` and `speedUpV3Deposit`, New 
 - Sourcify runner `9d6d2fe4`: 11/11. Rust runner `65af2281`: 8/11. It fails `deposit-1`, `deposit-eth` and `depositV3-eth`, because it renders chain 4663 as "Chain 4663" instead of "Robinhood Chain": its chain-name table has only 16 entries. This is a runner bug, and the tests keep the spec value. Also found in the Rust runner: when a chain id does not fit in 64 bits, it shows "Chain 0" and resolves the token on the signing chain.
 - A language-model agent made these changes by hand. `claims` was not run again: the changed fields take effect on the destination chain, which a fork of Ethereum cannot test.
 
+## Update: chain names, output token, depositor, and app deposits with an integrator tag
+
+Add this to the PR #3173 description. It supersedes the earlier text on Destination Chain, Output Token, the bytes32 Depositor, the interpolated sentence, Tests, Checks and "Tool limitations", including the earlier "Update: destination chain names and destination amount" where they differ.
+
+**Coverage.** No function is added or removed. Changed fields:
+- **Destination Chain** is two fields on `destinationChainId`, both labelled "Destination Chain".
+  - For the 9 Across destinations that wallet libraries name the same way (1, 10, 56, 137, 324, 8453, 42161, 43114, 59144), the field uses the ERC-7730 `chainId` format: the name comes from the EIP-155 chain registry.
+  - For the other 14 Across ids, an `enum` field (`metadata.enums.destinationChainOverride`) shows the name. The labels are the registry names, except 999 = "HyperEVM" (the registry lists 999 as "Wanchain Testnet") and 34268394551451 = "Solana" (not in the registry).
+  - The two `ifNotIn` lists split the 23 Across ids, so each Across id shows exactly one name. An id Across does not use shows both: the registry name, if any, and the number.
+- **Output Token (dest.)** uses `tokenTicker` with `chainIdPath: #.destinationChainId`, so the wallet looks the ticker up on the destination chain. The bytes32 variants apply it to the full `outputToken` value: an EVM token shows its ticker, and a Solana mint, which no lookup finds, shows its full 32-byte key.
+- **Depositor** in the bytes32 variants (`deposit`, `depositNow`, `unsafeDeposit`, `speedUpDeposit`) uses `addressName` on the bytes32 value itself. The contract accepts only an EVM address there: all three bytes32 deposits run `_depositV3`, which starts with `params.depositor.checkAddress()` (SpokePool.sol line 1385), and `speedUpDeposit` calls `depositor.toAddress()` (line 862). Both revert unless the top 12 bytes are zero (AddressConverters.sol).
+- **Recipient**, Exclusive Relayer and New Recipient stay raw in the bytes32 variants, because they live on the destination chain, which can be Solana.
+- **Relayer Must Send** stays as in the previous update: `tokenAmount` of `outputToken` with `chainIdPath`.
+
+**What the screens say (changes).**
+- The deposit sentence is now "Bridge {inputAmount} to {recipient} on the destination chain; depositor {depositor}". ERC-7730 allows a sentence to refer only to always-visible fields, and Destination Chain now depends on the value, so the field carries the chain name.
+- "Output Token (dest.)" shows the ticker of the destination-chain token, for example "USDC" on Polygon or "WBTC" on Arbitrum One. When the token is unknown on that chain, the wallet shows its address, or the full 32-byte key for a Solana mint.
+- "Depositor" shows the EVM address, or its local or ENS name, in all deposit and speed-up functions.
+
+**Tests.** 16 cases:
+- The 11 earlier cases.
+- Two encoded cases for destinations that need the override: a `depositV3` to HyperEVM (999) with HyperEVM USDC as output token, and a `depositNow` to Solana with the Solana USDC mint as output token.
+- Three real Across app deposits from 2026-10-29 that carry an integrator tag after the ABI arguments, each with its full calldata: `depositV3` `0xc1385ffafa7166f198fc2b904031644ce7419fc74323658d08bef1693aab5089` (WBTC to Arbitrum One), `depositV3` with ETH `0x331be81f20e6d7d8a8289cffe951b3b679e3d29d34034f749e50b17429410e35` (to Robinhood Chain), and `deposit` (bytes32) `0x3f0f21b13273e15e202c640d91256e56ca3e14df7ffa199270fc259316d1e8d2` (USDC to Polygon). In a sample of the last 1,000 calls, 213 of 229 successful `depositV3` calls and all 80 `deposit` calls carry such a tag. Both registry runners decode these and ignore the trailing bytes, as ABI decoding requires.
+
+Destination-chain token metadata was read on each destination chain. A language-model agent made these changes by hand.
+
+**Checks.**
+- Lint at the registry pin: 0 errors, 27 warnings (26 missing formats for excluded functions, 1 intent too long). The linter and the schema accept `addressName` and `tokenTicker` on `bytes32`.
+- Rust runner `65af2281`: 16/16.
+- Sourcify runner `9d6d2fe4`: 9/16. It fails the 7 cases with a bytes32 Depositor or Output Token (`deposit-1`, `deposit-eth`, `depositNow`, `speedUpDeposit`, `unsafeDeposit`, the Solana case and the tagged `deposit`). The library rejects address formats on `bytes32` (`ARGUMENT_TYPE_MISMATCH: "Format addressName expects address but got bytes"`) and shows the raw 32 bytes. This is a tooling to-do; the tests keep the spec value.
+- `claims` was not run again: the changed fields take effect on the destination chain, or they do not change what is paid.
+
+**Tool limitations.**
+- **Worked around: chain names.** The Rust runner names only 16 chains and prints "Chain N" for the rest, while the Sourcify runner reads the EIP-155 registry. Every Across id where the two differ, plus HyperEVM and Solana, uses the override enum, so both runners show the same names for all 23 Across ids.
+- **Worked around: trailing bytes.** The helper refuses calldata with bytes after the ABI arguments. Real tagged deposits were added to the tests by hand, and both runners render them correctly.
+- **Removed:** the earlier point that test token metadata is keyed by address only. Tokens on different chains have different addresses, so this limits nothing.
+- **Open, Sourcify:** address formats on `bytes32` (see Checks).
+- **Open, linter:** the pinned linter does not resolve a relative `chainIdPath` in `tokenAmount`, so the descriptor writes `#.destinationChainId`, which the spec defines as the same path.
+- **Open, Rust:** a chain id of 2^64 or more renders as "Chain 0", and the token is then resolved on the signing chain. The contract does not check `destinationChainId`, so a dapp could encode such a value.
+
+**Flags for the integrator.**
+- The `destinationChainOverride` enum and the `ifNotIn` lists need updating when Across adds a destination. Until then, a new id shows both fields: the registry name, if any, and the number.
+- Most Across app deposits carry the integrator tag. The descriptor renders them in both registry runners.
+

@@ -71,3 +71,11 @@ Done in the code and in the docs; only the PR descriptions are left.
 - **Done:** each report ends with "Update: L2 token shown as a ticker".
 - **To do:** add that update section to the #3174 and #3172 descriptions, together with items 2, 5 and 6.
 
+## 9. Across (#3173): chain-name overrides, output token, depositor, tagged deposits
+
+Done in the code and in the docs; only the PR description is left.
+
+- **Done:** the override enum and complementary `ifNotIn` lists for the destination chain; `tokenTicker` with `chainIdPath` for the output token (on the full bytes32 value in the bytes32 variants); `addressName` on the bytes32 depositor; two encoded cases (HyperEVM, Solana) and three real tagged app deposits. Pushed to `claude/nifty-euler-gwsa66-across`.
+- **Done:** the report ends with "Update: chain names, output token, depositor, and app deposits with an integrator tag". The spec-limitation notes are rewritten: the "Output amount denominated in a token on another chain" section is removed (it is the intended design, not a limitation), the bytes32 and chain-name sections describe the new workarounds, and the ABI-encoded message section points to wishlist items 2 and 5.
+- **To do:** replace the Across parts of the #3173 description with this update, together with items 2 and 7, and use the permalinks of item 1. The description must name the seven Sourcify runner failures.
+
