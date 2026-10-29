@@ -171,3 +171,13 @@ Add this to the PR #3176 description. It supersedes the earlier text on raw PT, 
 4. PT, YT and SY tickers depend on the maps. A market created after block 26,231,611 is blind until it is added.
 5. The Rust runner cannot run this file (see Checks).
 
+
+## Update: PT, YT and SY amounts shown raw, maps removed
+
+Add this to the PR #3176 description. It supersedes the map parts of the update above.
+
+- **Why:** a map lookup that finds no key makes the descriptor invalid for that transaction (spec, "metadata.maps": "In case no values matches the wallet MUST consider the 7730 file invalid for the transaction"). Pendle creates new markets often (37 in 90 days), so each new market was blind until someone refreshed the maps.
+- **Change:** the 35 PT, YT and SY amounts that used the maps now use the `raw` format, with "(raw)" in the label and the sentence, for example "Sell {exactPtIn} PT (raw) of {market} for at least {minSyOut} SY (raw) to {receiver}". The market stays visible by address. The four maps and the `nativeCurrencyAddress` workaround are removed. Amounts whose token is in the calldata keep `tokenAmount`: LP via `market`, PT and YT via `YT`, and the input and output tokens. `swapTokensToTokens` and `redeemDueInterestAndRewardsV2` are unchanged.
+- **Size:** the descriptor is 115 KB instead of 392 KB.
+- **Tests:** 41 cases in the testsv2 file. The 5 multicall cases with a nested `interpolatedIntent` are kept outside the file, as in the other PRs: `0x93dd22f2af45c7b331387b6292d869565934d1160013619c0ac89b133edd3fc0`, `0x6fdfc8cbfc2b6b025ddf5f3035fd55a9a5e4e120c9a717d2b4931be401f0e274`, `0x4b678dff86d212d5c5d8e6a9b2e7afbe3b8bd198d9436db3cf014a5f2eaec65c`, `0xbd63b85e79c8a3ca9ddd613a94a79643a6d119c1dc6d1e5765b891480db18d90` and `0xc7960e20aade8bcdadf8926cea1442456cd71ad1f0231ba6d9db56c8ad427d9d`.
+- **Checks:** lint 0 errors (the "Unresolved map reference" warning is gone), schema and index pass, Sourcify runner 41/41, Rust runner 41/41. The Rust runner can run this file again.

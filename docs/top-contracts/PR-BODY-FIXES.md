@@ -120,3 +120,10 @@ Docs only; no descriptor change.
 - **Done:** Base gets the L2ToL1MessagePasser. Blast gets the L2ToL1MessagePasser, the BLAST Airdrop and the AirdropVesting proxy. Both L2ToL1MessagePassers decode the L1 call with the `calldata` format and `chainId: 1`. One Blast portal test case is replaced, because its L2 callee now has a descriptor and renders a nested call. Pushed to both PR branches, together with the upstream merge.
 - **Done:** the Base and Blast reports end with a new "Update" section ("L2ToL1MessagePasser on Base", "L2ToL1MessagePasser and the BLAST airdrop contracts on Blast"). The Blast spec-limitation note on the share price mentions the L2ToL1MessagePasser sentence.
 - **To do:** add those update sections to the #3174 and #3172 descriptions, list the new files, and use the permalinks of item 1.
+
+## 16. Pendle (#3176): maps removed, PT, YT and SY amounts raw
+
+- **Done:** the four maps are removed, because a market that is missing from a map makes the descriptor invalid, and new markets were blind until a refresh. The 35 PT, YT and SY amounts use the `raw` format with "(raw)" labels. The 5 nested multicall cases are moved out of the test file. Both runners pass 41/41. Pushed to the PR branch.
+- **Done:** the report ends with "Update: PT, YT and SY amounts shown raw, maps removed". The spec-limitation section "Token that only an on-chain read of another argument can name" describes the new workaround.
+- **To do:** in the #3176 description, drop the map text of item 11 and add this update section, with the permalinks of item 1. The description must no longer say that the Rust runner cannot run the file.
+

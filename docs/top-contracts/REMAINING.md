@@ -27,8 +27,8 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
 - Base and Blast also describe their L2ToL1MessagePasser (and Blast its airdrop contracts), so L2 calls and L1 calls are decoded in both directions.
 
 ## Open decisions for the user
-- Pendle: the aggregator route data has the `calldata` format but stays hidden. `visible: "optional"` would show it and passes both runners.
-- Uniswap: ETH-paying multicalls stay blind because of the `@.value` pins. Keep them, or drop the pins with a sentence about refundETH.
+- Decided: Pendle keeps the aggregator route data hidden.
+- Decided: Uniswap keeps the `@.value` pins on ETH-paying multicalls.
 
 ## To do: runners and library limits (added 2026-10-29)
 - **Fix the Rust runner ourselves when registry CI fails on it.** Two known gaps: it renders a byte slice past the end of the data as `<unresolved>` where the Sourcify runner renders 0 (Blast `_extraData.[0:32]`), and its `NestedExpected` rejects a nested `interpolatedIntent` that the Sourcify runner requires.
@@ -37,7 +37,7 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
   - Blast #3172: `_extraData` is a DAI `tokenAmount` slice. The Rust runner fails two cases on empty data (`<unresolved>`); fix the runner.
   - Uniswap #3175: the `mint` ticks are shown. Both runners render them correctly.
   - Across #3173: `destinationChainId` uses the `chainId` format plus an override enum for 14 ids, `outputAmount` and the output token use the destination chain, and the bytes32 depositor uses `addressName`. The Sourcify runner fails seven cases (address formats on bytes32).
-  - Pendle #3176: maps for PT, YT and SY tokens, and `swapTokensToTokens` and `redeemDueInterestAndRewardsV2` described. The Rust runner cannot run the file (maps, nested `interpolatedIntent`).
+  - Pendle #3176: `swapTokensToTokens` and `redeemDueInterestAndRewardsV2` described. Maps were tried and removed, because a missing key makes new markets blind. Both runners pass.
   - All: clear-signing-helper does not support the `calldata` format, so those fields are added by hand.
 - **Expected CI state:** Base and Blast show lint errors on `chainId` until the linter is updated, Blast shows two Rust runner failures, and Across shows seven Sourcify runner failures (address formats on bytes32). Everything else should pass.
 - **Rust runner bugs to fix (found 2026-10-29):** its chain-name table has 16 entries and shows other chains as "Chain <id>" (render_shared.rs line 18); a chain id above 64 bits shows "Chain 0" and resolves the token on the signing chain (engine.rs lines 2307-2334); the byte-slice and nested `interpolatedIntent` gaps listed above.
@@ -56,7 +56,7 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
 - Done: the registry synced `specs/` from ethereum/ERCs with the change (#3180).
 
 ## To do: Pendle maps and tooling (added 2026-10-29)
-- **Refresh the Pendle maps** regularly: new markets are blind until added. Keep the build scripts (HyperSync logs, `readTokens()` calls, apply script) somewhere durable, for example in a tools folder of the fork.
-- **Rust runner:** support spec map references in `tokenAmount` `token` (it expects a string and its own `entries`/`mapReference` map model), in addition to the nested `interpolatedIntent` gap.
-- **Linter (python-erc7730):** resolve map references instead of dropping them ("Unresolved map reference ... will be dropped"); then remove the `nativeCurrencyAddress` workaround from the Pendle map fields. Its Ledger conversion also drops map references.
+- Done: the Pendle maps are removed (new markets were blind until a refresh). PT, YT and SY amounts are raw.
+- **Rust runner:** support spec map references in `tokenAmount` `token` (general fix; no PR of ours uses maps now) (it expects a string and its own `entries`/`mapReference` map model), in addition to the nested `interpolatedIntent` gap.
+- **Linter (python-erc7730):** resolve map references instead of dropping them ("Unresolved map reference ... will be dropped"). Its Ledger conversion also drops map references. No PR of ours uses maps any more, so this is a general fix.
 

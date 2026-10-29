@@ -35,7 +35,7 @@ Limitations of [clear-signing-helper](https://github.com/portdeveloper/clear-sig
 ## 6. No support for `metadata.maps`
 
 - **Where it hit:** #3176 Pendle (maps from market to PT, YT and SY, 664 markets each, and from YT to SY).
-- **Workaround:** a separate script built the maps from on-chain logs and `readTokens()` calls and wrote them, and the map references in `tokenAmount`, into the descriptor.
+- **Workaround:** a separate script built the maps from on-chain logs and `readTokens()` calls and wrote them, and the map references in `tokenAmount`, into the descriptor. The maps were later removed from the descriptor, because a key that is missing from a map makes the descriptor invalid, so new markets were blind.
 - **Improvement:** map support in the decisions file (`token: {"map": …, "keyPath": …}`), a command that builds a map from event logs plus a view call, and a refresh command for maps that grow.
 
 ## 7. `claims` crashes on fixtures of excluded functions
