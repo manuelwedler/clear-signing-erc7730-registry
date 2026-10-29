@@ -15,5 +15,5 @@
 ## Embedded-call spender cannot express L1-to-L2 address aliasing
 - **What the signer should see:** the account the L2 call runs as: the signer's address for an EOA, and the signer plus `0x1111000000000000000000000000000000001111` for a contract signer (OptimismPortal2.sol lines 589-592).
 - **What the spec cannot express:** `spender`/`spenderPath` ("Field formats > calldata") takes an address or a path, with no transform. `@.from` would be wrong for a Safe or another contract depositor.
-- **Workaround in this descriptor:** none is needed now, because `_data` stays pinned to "0x".
+- **Workaround in this descriptor:** `_data` stays pinned to "0x", so no L2 call is shown. For the deposit itself, a constant "Note" field (a literal `value`, no `path`) tells every signer: "From a contract wallet, the ETH is credited to its aliased address on Base." It cannot show the aliased address itself, and EOA signers see the note too.
 - **Proposed spec improvement:** an optional `spenderTransform` such as `"l1ToL2Alias"`, applied only when the sender has code, or a container value such as `@.l2From`.

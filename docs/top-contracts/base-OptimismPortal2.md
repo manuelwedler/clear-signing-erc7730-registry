@@ -191,3 +191,12 @@ Paste this section into PR #3174. It supersedes the earlier text on `_tx.data`, 
 - Lint at the registry pin: 0 errors on all three files. Warnings: portal 7 (intent length; proxy-admin and initialize functions), messenger 3 and bridge 16 (intent length, L1ChugSplashProxy admin functions, and "Unknown selector", because Sourcify does not resolve these legacy proxy types and the linter compares with the proxy ABI).
 - Schema ok, selector coverage ok, index buildable. Both runners pass every committed case: portal 6/6, messenger 2/2, bridge 10/10.
 - The new descriptors were built with clear-signing-helper 0.6.0-preview.6 (`--strict-portability --registry-runners`, no portability findings). Claims replayed 10 real fixtures with 0 findings. A language-model agent added the `calldata` fields by hand, because the helper does not support that format.
+
+## Update: gas unit and aliasing note on `depositTransaction`
+
+Add this to the PR description as well.
+
+- **L2 gas limit:** `_gasLimit` now uses the ERC-7730 `unit` format with `base: "gas"`, instead of `raw`. It is a number of gas units, not an amount of ETH, so `amount` would be wrong. Both runners render it like the spec's `unit` example, without a space, for example `100000gas`.
+- **Aliasing note:** `depositTransaction` now opens with a constant field, `{ "label": "Note", "value": "From a contract wallet, the ETH is credited to its aliased address on Base.", "format": "raw" }`. A field with a literal `value` and no `path` is allowed by the spec to display a constant. The portal credits a non-EOA sender's ETH to its L1-to-L2 alias, the address plus `0x1111000000000000000000000000000000001111`, not to the same address on Base. A Safe user who expects the ETH at the Safe's own address on Base would otherwise be surprised.
+- **Tests:** the expected screens of both `depositTransaction` cases include the note and the new gas format. The full CI check passes, and both runners pass every case.
+
