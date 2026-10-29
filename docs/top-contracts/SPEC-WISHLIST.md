@@ -46,3 +46,12 @@ Spec and schema changes found while writing the top-contracts descriptors. An is
   - **#3176 Pendle:** the aggregator route data for 0x routes is `abi.encode(...)`, not calldata (PendleSwap.sol lines 57-59); a `switch` on the swap type could decode it.
   - MetaSwap (no PR): see item 1.
 
+
+## 6. A chain for native-currency amounts
+
+- **Problem:** the `amount` format ("Field formats > amount") always renders a value in the native currency of the chain the transaction is signed on. It has no `chainId` / `chainIdPath`, unlike `tokenAmount` and `tokenTicker`. So an amount that is spent on another chain, such as the ETH that an L1 deposit sends on the L2, is labelled with the L1's currency. That is right for Base and Blast, which use ETH on both chains, but wrong for an L2 with a custom gas token.
+- **Proposal:** add the optional `chainId` / `chainIdPath` parameters of `tokenAmount` to `amount`, with the same semantics: the wallet renders the value in the native currency of that chain.
+- **Which of our PRs would benefit and how:**
+  - **#3174 Base:** `OptimismPortal2.depositTransaction._value` ("ETH Sent on L2") with `chainId: 8453`. Today the chain is only in the label.
+  - **#3172 Blast:** `OptimismPortal.depositTransaction._value` ("ETH to Send on L2") with `chainId: 81457`.
+  - Any OP Stack portal with a custom gas token, where the label workaround would show the wrong currency.
