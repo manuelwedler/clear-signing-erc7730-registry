@@ -39,7 +39,7 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
   - Blast #3172: `_extraData` is a DAI `tokenAmount` slice. The Rust runner fails two cases on empty data (`<unresolved>`); fix the runner.
   - Uniswap #3175: the `mint` ticks are shown. Both runners render them correctly.
   - Across #3173: `destinationChainId` uses the `chainId` format plus an override enum for 14 ids, `outputAmount` and the output token use the destination chain, and the bytes32 depositor uses `addressName`. The Sourcify runner fails seven cases (address formats on bytes32).
-  - Pendle #3176 (maps, `swapTokensToTokens`, `redeemDueInterestAndRewardsV2`): in progress.
+  - Pendle #3176: maps for PT, YT and SY tokens, and `swapTokensToTokens` and `redeemDueInterestAndRewardsV2` described. The Rust runner cannot run the file (maps, nested `interpolatedIntent`).
   - All: clear-signing-helper does not support the `calldata` format, so those fields are added by hand.
 - **Expected CI state:** Base and Blast show lint errors on `chainId` until the linter is updated, Blast shows two Rust runner failures, and Across shows seven Sourcify runner failures (address formats on bytes32). Everything else should pass.
 - **Rust runner bugs to fix (found 2026-10-29):** its chain-name table has 16 entries and shows other chains as "Chain <id>" (render_shared.rs line 18); a chain id above 64 bits shows "Chain 0" and resolves the token on the signing chain (engine.rs lines 2307-2334); the byte-slice and nested `interpolatedIntent` gaps listed above.
@@ -56,4 +56,9 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
 - The schema change is in ethereum/ERCs PR 2124 and was synced into the registry by #3180 (2026-10-29). The common branch and all six PR branches include upstream master with that sync, so schema validation passes.
 - **To do:** the registry linter (sourcifyeth/python-erc7730) must accept `chainId` / `chainIdPath` in the `calldata` parameters. Until then, lint reports two errors per `chainId` field in the Base and Blast descriptors. After the linter change, bump the linter pin in the registry.
 - Done: the registry synced `specs/` from ethereum/ERCs with the change (#3180).
+
+## To do: Pendle maps and tooling (added 2026-10-29)
+- **Refresh the Pendle maps** regularly: new markets are blind until added. Keep the build scripts (HyperSync logs, `readTokens()` calls, apply script) somewhere durable, for example in a tools folder of the fork.
+- **Rust runner:** support spec map references in `tokenAmount` `token` (it expects a string and its own `entries`/`mapReference` map model), in addition to the nested `interpolatedIntent` gap.
+- **Linter (python-erc7730):** resolve map references instead of dropping them ("Unresolved map reference ... will be dropped"); then remove the `nativeCurrencyAddress` workaround from the Pendle map fields. Its Ledger conversion also drops map references.
 

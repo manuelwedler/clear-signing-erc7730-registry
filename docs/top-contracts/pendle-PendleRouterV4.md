@@ -131,3 +131,43 @@ ERC-7730 spec limitations found for this contract: https://github.com/manuelwedl
 3. In a sample of one day and 19 hours, the `swapType` pin refuses 59 of 167 `TokenOutput` exits.
 4. PT, YT and SY amounts are raw.
 5. Most real multicalls (about 230 of 262 sampled) contain the excluded `redeemDueInterestAndRewardsV2`, which renders as raw calldata. Describing V2 would make them fully readable.
+
+## Update: token maps, `swapTokensToTokens` and `redeemDueInterestAndRewardsV2`
+
+Add this to the PR #3176 description. It supersedes the earlier text on raw PT, YT and SY amounts, on the two excluded functions, and flags 4 and 5.
+
+**Coverage**
+- 37 functions are described and 16 are excluded. `swapTokensToTokens` and `redeemDueInterestAndRewardsV2` are now described. In blocks 26,200,000 to 26,276,221 (about 10.6 days) the router had 838 successful direct `swapTokensToTokens` calls and 151 direct V2 calls. In a sample of 990 successful multicalls, every inner call now has a description; the sample has 844 inner V2 calls.
+- New `metadata.maps`: `marketPt`, `marketYt` and `marketSy` (664 entries each) and `ytSy` (YT to SY, 639 entries). They were built from all `CreateNewMarket` logs of Pendle's market factories: the five in Pendle's `deployments/1-core.json`, plus one unlisted factory created by Pendle's deployer with four test markets. The FiraMarketFactory fork is left out. Each market's `readTokens()` was called at the latest block: no failures, the PT matched the event every time, and `YT.SY()` matched every time. 604 of the markets are expired and are included, because the router can still redeem and exit through them.
+- Entries never go stale (PT, SY and YT are immutables, PendleMarketV7.sol:49-51,73-75). New markets must be added; until then their transactions are blind, as the spec requires. Pendle created 37 markets in the last 90 days. The newest market in the maps is from block 26,231,611.
+
+**What the screens say**
+
+| Judgment | Source |
+|---|---|
+| PT, YT and SY amounts show the market's token through a map keyed on `market`. The "(raw)" labels are gone. | ActionSwapPTV3.sol:25,47,62,82; ActionSwapYTV3.sol:30,53,70,90; ActionAddRemoveLiqV3.sol:28,57,86,131,156,211,230,283,359,407; ActionMiscV3.sol:251,386 |
+| The SY amounts of `mintPyFromSy` and `redeemPyToSy` show `YT.SY()` through the `ytSy` map. | ActionMiscV3.sol:61,69; ActionBase.sol:116,123-135 |
+| `swapTokensToTokens`: a bundled group shows, per swap, the exact "Amount to Pay" and the "Minimum to Receive". Each input is pulled exactly, and native input needs `msg.value` equal to the amount. | ActionMiscV3.sol:185-187; TokenHelper.sol:14-17 |
+| `swapTokensToTokens`: each minimum is checked per swap and paid to the signer; amounts are not rescaled. | ActionMiscV3.sol:190,353-370 |
+| V2: every claim, redemption and swap output goes to `msg.sender`, shown as "Beneficiary". | ActionMiscV3.sol:114,118-119,124-126,130,145,151-152,158,326,370 |
+| V2: "Minimum Interest" binds when interest is not 0, enforced by the SY of the named YT. | ActionMiscV3.sol:121-126,165-170,314-332; ActionBase.sol:107 |
+| V2: each swap's minimum binds. The amount swapped is what the named contracts report, so it is not shown. | ActionMiscV3.sol:144-163,172-174,334-346,369-370 |
+| Device concern: Ledger Flex and Stax show multi-field tuple arrays by field (`ARRAY_ORDER_PORTABILITY`), so the per-swap and per-YT pairing may be lost there. | strict-portability check |
+
+**Tests**
+- 46 cases: 43 real mainnet transactions and 3 encoded. New: `swapTokensToTokens` `0x808f19e46a8c480bfd0bbe61989de273ddf54d3f753f87c09376784086e9e6cf` (1 swap), `0x253209b2cc0f3f10adcb65eb291f74bef2f4fb574a7890e357492d07eb9a4316` (4 swaps to ETH), `0x7e619800e32aac2f836baebd0f878be5dc591b1bd98b0ca59e9b606a64064e50` (ETH in); `redeemDueInterestAndRewardsV2` `0xd5911ceb6973ff13ae5d5cd5fb9ab3ae3af5710a9ff9262608e45b35f0bcca78`; multicalls `0x6fdfc8cbfc2b6b025ddf5f3035fd55a9a5e4e120c9a717d2b4931be401f0e274`, `0x4b678dff86d212d5c5d8e6a9b2e7afbe3b8bd198d9436db3cf014a5f2eaec65c`, `0xbd63b85e79c8a3ca9ddd613a94a79643a6d119c1dc6d1e5765b891480db18d90` and `0xc7960e20aade8bcdadf8926cea1442456cd71ad1f0231ba6d9db56c8ad427d9d` (V2 with 4 YTs and 1 market). The nested multicall cases are now in the testsv2 file with their nested `interpolatedIntent`, as the test schema allows.
+- One encoded V2 call with a reward swap (PENDLE to at least 10 USDC): HyperSync scans of all 85,651 direct V2 calls and 210,864 multicalls since the router's deployment found no V2 call with a non-empty `swaps` array.
+- The expected screens of the 36 existing cases with PT, YT or SY amounts were regenerated. Token metadata in the data provider was read from the chain.
+
+**Checks**
+- Lint at the registry pin: 0 errors and 40 warnings (37 "Unknown selector" because the linter fetches the proxy-only ABI, 1 intent too long, and "Unresolved map reference" because the linter cannot resolve maps). Map fields also carry `nativeCurrencyAddress: ["0x0000000000000000000000000000000000000000"]`, which has no effect on rendering (no map value is the zero address); it works around the linter rejecting the empty parameters that remain after it drops the map.
+- Schema and index: pass, including the registry's synced spec (#3180).
+- Sourcify runner `9d6d2fe4`: 46/46. It follows the spec rule for a missing key: a market not in the map gives `INVALID_DESCRIPTOR`.
+- Rust runner `65af2281`: cannot run this file. It rejects a nested `interpolatedIntent` in the test file (cs-test/src/schema.rs:93-101), and it does not parse spec map references (`FormatParams.token` is a string, types/display.rs:386-387; its own map model uses `entries` and `mapReference`, types/metadata.rs:66-76). With both removed in a scratch copy, the 19 cases without map amounts pass, including every new case. The expected values follow the spec.
+- The descriptor is 392 KB, the largest in the registry. The scripts that build and refresh the maps are kept outside the registry.
+- Not done: claims replay of the new cases, and device tests.
+
+**Flags (replace 4 and 5)**
+4. PT, YT and SY tickers depend on the maps. A market created after block 26,231,611 is blind until it is added.
+5. The Rust runner cannot run this file (see Checks).
+

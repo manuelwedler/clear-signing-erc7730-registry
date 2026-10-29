@@ -81,7 +81,15 @@ Done in the code and in the docs; only the PR description is left.
 
 ## 10. All PRs: upstream master merged (spec sync #3180)
 
-- **Done:** the common branch and the PR branches of #3171, #3173 and #3175 include upstream master with the ERC-7730 spec sync (#3180). #3172, #3174 and #3176 follow once their running work is committed.
+- **Done:** the common branch and the PR branches of #3171, #3173, #3175 and #3176 include upstream master with the ERC-7730 spec sync (#3180). #3172 and #3174 follow once their running work is committed.
 - **Done:** the "Cross-chain embedded calldata is not schema-valid" sections are removed from the Base and Blast spec-limitation notes, because the schema now allows `chainId`. The Base and Blast reports say that schema validation passes and only lint fails on `chainId`.
 - **To do:** in the #3174 and #3172 descriptions, drop any claim that `chainId` is not schema-valid, and link the spec-limitation notes with the permalinks of item 1.
+
+## 11. Pendle (#3176): token maps and two more functions
+
+Done in the code and in the docs; only the PR description is left.
+
+- **Done:** maps from market to PT, YT and SY (664 markets) and from YT to SY; `swapTokensToTokens` and `redeemDueInterestAndRewardsV2` described; 46 test cases. Pushed to `claude/nifty-euler-gwsa66-pendle`.
+- **Done:** the report ends with "Update: token maps, `swapTokensToTokens` and `redeemDueInterestAndRewardsV2`". The spec-limitation notes have a rewritten "Token that only an on-chain read of another argument can name" section and a new "Amount known only at execution, reported by caller-named contracts" section.
+- **To do:** add the update section to the #3176 description, together with item 2, and use the permalinks of item 1. It must say that the Rust runner cannot run the file and that the descriptor is 392 KB.
 
