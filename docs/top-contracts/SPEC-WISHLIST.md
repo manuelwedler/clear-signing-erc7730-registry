@@ -12,6 +12,8 @@ Spec and schema changes found while writing the top-contracts descriptors. An is
 
 ## 2. Allow `chainId` and `chainIdPath` in the `calldata` format schema
 
+- **Status:** proposed in ethereum/ERCs PR 2124 ("Update ERC-7730: allow chainId in the calldata field format schema"). It adds both parameters to `calldataParameters` in the v2.0.0, v2.1.0 and v2 schema files, because the ERC text already listed them when those versions were released, and forbids setting both at once. Treated as merged in our registry work since 2026-10-29. The registry linter still needs the matching change.
+
 - **Problem:** the ERC text lists `chainIdPath` / `chainId` for the `calldata` format ("Field formats > calldata": "Specifies the chain ID if it differs from the current contract's chain"). But `$format/calldataParameters` in `erc7730-v2.schema.json` (and v1) has only callee, selector, amount and spender, with `additionalProperties: false`. The pinned linter rejects `chainId` too. Both registry test runners already render it correctly.
 - **Proposal:** add `chainId` (integer or map reference) and `chainIdPath` (string) to `calldataParameters`, as `tokenAmount` already has them. This is a MINOR schema release (2.2.0), because it only accepts more descriptors. The linter model (sourcifyeth/python-erc7730) needs the same change. A spec PR is being prepared; see `agent-instructions-erc7730-calldata-chainid.md` in this folder.
 - **Status in our PRs:** #3174 and #3172 already use `chainId` as the ERC text describes (since 2026-10-29), so their schema validation and lint fail until this is released.

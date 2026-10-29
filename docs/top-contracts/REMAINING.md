@@ -52,3 +52,8 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
 - **Linter and schema:** they accept it today; check again after any linter update.
 - **Rust runner:** accepts it.
 
+## ERC-7730 `chainId` in `calldata` (ethereum/ERCs PR 2124)
+- The schema change is proposed in ethereum/ERCs PR 2124 and treated as merged. Our CI check validates against its v2 schema, and schema validation passes for Base and Blast.
+- **To do:** the registry linter (sourcifyeth/python-erc7730) must accept `chainId` / `chainIdPath` in the `calldata` parameters. Until then, lint reports two errors per `chainId` field in the Base and Blast descriptors. After the linter change, bump the linter pin in the registry.
+- **To do:** the registry syncs `specs/` from ethereum/ERCs with its sync-specs workflow; check that the synced v2 schema includes the change after PR 2124 merges.
+
