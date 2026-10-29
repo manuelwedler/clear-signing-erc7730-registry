@@ -4,16 +4,16 @@ To apply in one pass with the external agent. Use the latest commit of `claude/n
 
 ## 1. Link to a commit, not to a branch (all PRs)
 
-Each description links its spec-limitation notes through the branch `claude/nifty-euler-gwsa66`, which may be deleted later. Replace every link of the form `https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/claude/nifty-euler-gwsa66/<path>` with a permalink to a commit. At commit `857c5d4`, the links are:
+Each description links its spec-limitation notes through the branch `claude/nifty-euler-gwsa66`, which may be deleted later. Replace every link of the form `https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/claude/nifty-euler-gwsa66/<path>` with a permalink to a commit. At commit `611dbee`, the links are:
 
 | PR | Contract | Permalink |
 |---|---|---|
-| #3171 | SwftSwap | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/swft-SwftSwap.md |
-| #3172 | Blast portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/blast-OptimismPortal.md |
-| #3173 | Across SpokePool | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/across-Ethereum_SpokePool.md |
-| #3174 | Base portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/base-OptimismPortal2.md |
-| #3175 | Uniswap V3 NPM | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/uniswap-UniswapV3NonfungiblePositionManager.md |
-| #3176 | Pendle RouterV4 | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/857c5d4bf45992b284c0a1a727eb6ddd8bded74a/docs/spec-limitations/pendle-PendleRouterV4.md |
+| #3171 | SwftSwap | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/611dbee397032f7f93adc66a9b64ccfb8b9b8a2b/docs/spec-limitations/swft-SwftSwap.md |
+| #3172 | Blast portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/611dbee397032f7f93adc66a9b64ccfb8b9b8a2b/docs/spec-limitations/blast-OptimismPortal.md |
+| #3173 | Across SpokePool | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/611dbee397032f7f93adc66a9b64ccfb8b9b8a2b/docs/spec-limitations/across-Ethereum_SpokePool.md |
+| #3174 | Base portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/611dbee397032f7f93adc66a9b64ccfb8b9b8a2b/docs/spec-limitations/base-OptimismPortal2.md |
+| #3175 | Uniswap V3 NPM | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/611dbee397032f7f93adc66a9b64ccfb8b9b8a2b/docs/spec-limitations/uniswap-UniswapV3NonfungiblePositionManager.md |
+| #3176 | Pendle RouterV4 | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/611dbee397032f7f93adc66a9b64ccfb8b9b8a2b/docs/spec-limitations/pendle-PendleRouterV4.md |
 
 Apply the same rule to any other link into the fork in the descriptions.
 
@@ -38,4 +38,12 @@ Done in the code and in the docs; only the PR description is left.
 - **Done:** the `minReturnAmount` field is now labelled "Requested Min (raw)", and the sentence reads "… requested minimum {minReturnAmount} (raw units)". This tells the signer that the number is unscaled. It matches the "(raw)" labels in #3173 and #3175. The 9 test expectations are updated, and the full CI check passes. Pushed to `claude/nifty-euler-gwsa66-swft`, so PR #3171 already shows it.
 - **Done:** `docs/top-contracts/swft-SwftSwap.md` (Summary, Coverage table, interpolated intents, "What the screens say" item 4) and `docs/spec-limitations/swft-SwftSwap.md` (workaround line) use the new label.
 - **To do:** the PR #3171 description still names the old label "Requested Minimum". Replacing the description as in item 3 covers this.
+
+## 5. Base (#3174) and Blast (#3172): gas unit and aliasing note
+
+Done in the code and in the docs; only the PR descriptions are left.
+
+- **Done:** `depositTransaction._gasLimit` uses the `unit` format with `base: "gas"` instead of `raw`. `depositTransaction` opens with a constant Note field about the L1-to-L2 address alias for contract-wallet signers. Tests are updated and the full CI check passes. Pushed to both PR branches, so the PRs already show it.
+- **Done:** the reports end with an "Update: gas unit and aliasing note on `depositTransaction`" section. The aliasing sections of `docs/spec-limitations/base-OptimismPortal2.md` and `docs/spec-limitations/blast-OptimismPortal.md` name the new workaround.
+- **To do:** add that update section to the descriptions of #3174 and #3172, together with item 2, and use the permalinks of item 1.
 
