@@ -7,7 +7,7 @@
 - Entity `swft`, file `registry/swft/calldata-SwftSwap.json`, tests `registry/swft/testsv2/calldata-SwftSwap.tests.json`.
 - Contract `SwftSwap` at `0xc1d13492285eb664951E201BF7C80c7c6318a1b5`, Sourcify runtime match on chain 1 (compiler 0.8.0, `SwftSwap.sol:SwftSwap`, deployer `0xa91EA6E5F9CbAe55396Fb6E3aEB2234B5952CE0C`). Not a proxy. No existing registry descriptor deploys this address or matches its non-standard selectors (`init --registry` reported only the generic `Ownable` priors).
 - Two user-facing functions are described: `swap` and `swapEth`. Four `onlyOwner` functions are excluded.
-- **Trust assumption, stated plainly:** this is a custodial service. `swap` moves `fromAmount` of `fromToken` from the signer into the contract (`SwftSwap.sol` line 55) and `swapEth` keeps `msg.value` (line 64). Nothing else happens on-chain: `toToken`, `destination` and `minReturnAmount` are only written to the `Swap` / `SwapEth` events (lines 59 and 66). SWFT's off-chain operator reads those events and pays the destination from its own reserves; the owner key withdraws the deposits with `withdraw` / `withdrawETH` (lines 69–84). There is no on-chain check of `minReturnAmount`, no refund path and no deadline. The screens therefore say "Send … to SWFT" and label the minimum "Requested Minimum", never "at least".
+- **Trust assumption, stated plainly:** this is a custodial service. `swap` moves `fromAmount` of `fromToken` from the signer into the contract (`SwftSwap.sol` line 55) and `swapEth` keeps `msg.value` (line 64). Nothing else happens on-chain: `toToken`, `destination` and `minReturnAmount` are only written to the `Swap` / `SwapEth` events (lines 59 and 66). SWFT's off-chain operator reads those events and pays the destination from its own reserves; the owner key withdraws the deposits with `withdraw` / `withdrawETH` (lines 69–84). There is no on-chain check of `minReturnAmount`, no refund path and no deadline. The screens therefore say "Send … to SWFT", label the minimum "Requested Minimum", never "at least", and open with a constant "Note" field: "Paid out off-chain by SWFT. The minimum is not enforced on-chain."
 - The contract's on-chain `name()` / `symbol()` return `Bridgers1.1` / `Bridgers` on every chain (SWFT's current product name is Bridgers, https://bridgers.ai/, listed by DefiLlama as a SWFT Blockchain product). `metadata.owner` is `SWFT` as the brief asked; `info.url` is https://www.swft.pro/ (live, titled "SWFT Blockchain — One-Stop Cross-Chain Platform"). The maintainers may prefer `Bridgers` as the displayed owner; it is a one-word change.
 
 ## Coverage
@@ -16,8 +16,8 @@
 
 | Function | Intent | Fields shown |
 |---|---|---|
-| `swap(address fromToken,string toToken,string destination,uint256 fromAmount,uint256 minReturnAmount)` | `Send to SWFT for swap` | Amount (`fromAmount`, tokenAmount by `fromToken`), Order Details (`toToken`, raw), Payout Address (`destination`, raw), Requested Minimum (`minReturnAmount`, raw) |
-| `swapEth(string toToken,string destination,uint256 minReturnAmount)` | `Send to SWFT for swap` | Amount (`@.value`, amount), Order Details, Payout Address, Requested Minimum |
+| `swap(address fromToken,string toToken,string destination,uint256 fromAmount,uint256 minReturnAmount)` | `Send to SWFT for swap` | Note (constant value, no path), Amount (`fromAmount`, tokenAmount by `fromToken`), Order Details (`toToken`, raw), Payout Address (`destination`, raw), Requested Minimum (`minReturnAmount`, raw) |
+| `swapEth(string toToken,string destination,uint256 minReturnAmount)` | `Send to SWFT for swap` | Note (constant value, no path), Amount (`@.value`, amount), Order Details, Payout Address, Requested Minimum |
 
 Interpolated intents: `Send {fromAmount} to SWFT to swap for {toToken}, paid to {destination}, requested minimum {minReturnAmount}` and the same with `{@.value}`. They exceed 30 characters because they name every shown amount, the payout address and the requested minimum; the linter warns (`INTENT_LENGTH`), as it does for most merged sentences.
 
@@ -56,6 +56,7 @@ Each judgment call, with the source that justifies it (files under `bundle/revie
 6. **`Payout Address` for `destination`.** It is the address on the destination chain where SWFT pays out (TRON `T…` addresses and EVM `0x…` addresses in the fixtures). It is a string, so it is shown raw. It is the most important thing for the signer to check after the amount, so it is in the sentence.
 7. **No `nativeCurrencyAddress`, no `threshold`.** `swap` requires `fromToken != 0` (line 51) and reads it as an ERC-20; there is no native-token path through `swap`. No sentinel value has special meaning.
 8. **`fromToken` hidden.** It is displayed as the ticker of "Amount". If a wallet cannot resolve the ticker it shows the raw amount with an "Unknown token" warning; the mainnet preview did that before the fixture carried USDC metadata.
+9. **A constant "Note" field states the trust assumption on screen.** Both functions open with `{ "label": "Note", "value": "Paid out off-chain by SWFT. The minimum is not enforced on-chain.", "format": "raw" }`. The field has a literal `value` and no `path`, which ERC-7730 allows to display a constant (field format specification, `path` / `value`). It tells the signer what the contract cannot guarantee: the payout happens off-chain (lines 55, 64), and no `require` reads `minReturnAmount` (lines 59, 66). Both registry runners render it as the first field.
 
 ## Deployments
 
@@ -78,7 +79,7 @@ Protocol-side deployment documentation was not reachable from this session (`doc
 
 ## Tests
 
-All 9 test cases are real mined transactions sent directly to the contract (none encoded). `tests.real = 9`, `tests.encoded = 0`.
+All 9 test cases are real mined transactions sent directly to the contract (none encoded). `tests.real = 9`, `tests.encoded = 0`. Every expected screen starts with the constant "Note" field.
 
 | Case | Chain | txHash | What it renders |
 |---|---|---|---|
@@ -103,5 +104,6 @@ Token metadata in `dataProvider.tokens` was read from each chain by `fixture --t
 - **Claims replay:** `clear-signing claims --rpc-url https://mainnet.gateway.tenderly.co` on the two mainnet real-transaction fixtures: `swap` 41 runs, `swapEth` 39 runs, **0 findings**; the exact "Amount" claims hold on the baseline replay (sender paid 110000000 of USDC / 40000000000000000 wei; received 0). `https://eth.drpc.org` was tried first and failed with HTTP 408 "Request timeout on the free plan" on `eth_getTransactionReceipt`. Two things to note about the replay:
   - It did not flag `toToken`, `destination` and `minReturnAmount` as ignored arguments, although the contract ignores them on-chain. I read them as what the operator acts on off-chain and kept them visible on purpose; this is a judgment, not something the replay measured.
   - Tool limitation: `claims` crashed (`Cannot read properties of undefined (reading 'fields')`) when it reached a fixture of an excluded function (`transferOwnership`). Removing the excluded functions' fixtures let it complete. The other-chain fixtures were not replayed (the brief's historical-state endpoints are for mainnet); their screens are the same formats on byte-identical code.
+- **Note field:** added by hand after the helper export, because the helper's decisions file has no slot for a constant field. After the change, the registry checks still pass: lint 0 errors with the same warnings, schema ok, index buildable, both runners 9/9.
 - **Not run / not verified:** no physical-device rendering; no wallet verification; no attestation. SWFT's own API documentation and deployment list were not reachable from this session, so the `toToken` string format is described from observed calls only. The BSC deployment was not added (see "Deployments").
 - **No git actions:** nothing was committed, pushed or written into the registry clone.
