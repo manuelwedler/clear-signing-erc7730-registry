@@ -68,3 +68,9 @@ Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A p
 - Still to run: 5 (pin bumps and nested test cases), after the fixes of 2, 3 and 4 are merged and released.
 - Done on 2026-10-29: the #3171 description has the BNB Chain update (fix list item 17), and portdeveloper/clear-signing-helper has one issue with the list in HELPER-IMPROVEMENTS.md.
 
+## State on 2026-10-30
+- Merged: #3171 SwftSwap and #3175 Uniswap V3 NPM.
+- Open with a human review by marcocastignoli: #3172 Blast (2 changes, 5 suggestions), #3173 Across (1 change, 3 suggestions), #3174 Base (2 changes, 3 suggestions), #3176 Pendle (0 changes, 2 suggestions). One agent per PR addresses every thread; see `REVIEW-ROUND-1.md` when it exists.
+- Instruction 5 is done: upstream #3182 bumped the pins (linter `ccd51ad`, Rust runner `8bfe6b49`, Sourcify runner `277965de` with library 0.3.1), every PR branch includes upstream master, and the nested-call test cases are in the Base, Blast and Pendle test files. With the new pins all four open PRs pass lint (0 errors), schema, both runners and the index check. The "Expected CI state" section above is therefore history.
+- The local copies of the pinned runners are `/root/.cache/clear-signing-helper/runners/rust-8bfe6b49` and `sourcify-277965de`; `verify-entity.sh` uses them and the new linter pin.
+
