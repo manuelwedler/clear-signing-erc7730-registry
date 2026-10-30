@@ -4,16 +4,16 @@ To apply in one pass with the external agent. Use the latest commit of `claude/n
 
 ## 1. Link to a commit, not to a branch (all PRs)
 
-Each description links its spec-limitation notes through the branch `claude/nifty-euler-gwsa66`, which may be deleted later. Replace every link of the form `https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/claude/nifty-euler-gwsa66/<path>` with a permalink to a commit. At commit `a145642`, the links are:
+Each description links its spec-limitation notes through the branch `claude/nifty-euler-gwsa66`, which may be deleted later. Replace every link of the form `https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/claude/nifty-euler-gwsa66/<path>` with a permalink to a commit. At commit `bff4ffc`, the links are:
 
 | PR | Contract | Permalink |
 |---|---|---|
-| #3171 | SwftSwap | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/a1456423ff1e39839ac808f5d63732d8bb0211ae/docs/spec-limitations/swft-SwftSwap.md |
-| #3172 | Blast portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/a1456423ff1e39839ac808f5d63732d8bb0211ae/docs/spec-limitations/blast-OptimismPortal.md |
-| #3173 | Across SpokePool | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/a1456423ff1e39839ac808f5d63732d8bb0211ae/docs/spec-limitations/across-Ethereum_SpokePool.md |
-| #3174 | Base portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/a1456423ff1e39839ac808f5d63732d8bb0211ae/docs/spec-limitations/base-OptimismPortal2.md |
-| #3175 | Uniswap V3 NPM | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/a1456423ff1e39839ac808f5d63732d8bb0211ae/docs/spec-limitations/uniswap-UniswapV3NonfungiblePositionManager.md |
-| #3176 | Pendle RouterV4 | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/a1456423ff1e39839ac808f5d63732d8bb0211ae/docs/spec-limitations/pendle-PendleRouterV4.md |
+| #3171 | SwftSwap | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/bff4ffc656c0e4d3d0a2545e4535b4e66eee3bde/docs/spec-limitations/swft-SwftSwap.md |
+| #3172 | Blast portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/bff4ffc656c0e4d3d0a2545e4535b4e66eee3bde/docs/spec-limitations/blast-OptimismPortal.md |
+| #3173 | Across SpokePool | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/bff4ffc656c0e4d3d0a2545e4535b4e66eee3bde/docs/spec-limitations/across-Ethereum_SpokePool.md |
+| #3174 | Base portal | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/bff4ffc656c0e4d3d0a2545e4535b4e66eee3bde/docs/spec-limitations/base-OptimismPortal2.md |
+| #3175 | Uniswap V3 NPM | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/bff4ffc656c0e4d3d0a2545e4535b4e66eee3bde/docs/spec-limitations/uniswap-UniswapV3NonfungiblePositionManager.md |
+| #3176 | Pendle RouterV4 | https://github.com/manuelwedler/clear-signing-erc7730-registry/blob/bff4ffc656c0e4d3d0a2545e4535b4e66eee3bde/docs/spec-limitations/pendle-PendleRouterV4.md |
 
 Apply the same rule to any other link into the fork in the descriptions.
 
