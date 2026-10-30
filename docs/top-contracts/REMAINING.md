@@ -7,7 +7,7 @@
 | SwftSwap | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3171 | merged |
 | Uniswap V3 NPM | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3175 | merged |
 | Blast OptimismPortal | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3172 | merged |
-| Across SpokePool | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3173 | open; round 2 (2 changes) answered in `d890b5e`, waiting for review |
+| Across SpokePool | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3173 | open; round 2 (2 changes) answered in `d890b5e`, self-reviewed, unused constants removed in `043f71b`; waiting for review |
 | Base OptimismPortal2 | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3174 | merged |
 | Pendle RouterV4 | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3176 | merged |
 

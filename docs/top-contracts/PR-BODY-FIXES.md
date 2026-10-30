@@ -139,6 +139,6 @@ Docs only; no descriptor change.
 
 ## 19. Across (#3173): review round 2
 
-- **Done:** the deposit sentence says "the relayer must send {outputAmount}" and the speed-up formats say "Request bridge deposit update" (commit `d890b5e`, upstream master merged). The report ends with "Update: review round 2"; `REVIEW-ROUND-1.md` has the two replies.
+- **Done:** the deposit sentence says "the relayer must send {outputAmount}" and the speed-up formats say "Request bridge deposit update" (commit `d890b5e`, upstream master merged; `043f71b` removes unused `metadata.constants`). The report ends with "Update: review round 2"; `REVIEW-ROUND-1.md` has the two replies.
 - **To do:** post the two replies, resolve the threads, append the update section to the #3173 description with the permalinks of item 1, and re-request the review. #3172, #3174 and #3176 are merged; their descriptions need no further change.
 

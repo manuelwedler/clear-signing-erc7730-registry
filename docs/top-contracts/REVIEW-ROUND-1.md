@@ -65,7 +65,7 @@ Description: append "Update: review round 1" of `pendle-PendleRouterV4.md`. The 
 | deposit `interpolatedIntent`, "gets" | required | Done in d890b5e. The sentence now reads "Bridge {inputAmount} to {recipient} on the destination chain; the relayer must send {outputAmount}; depositor {depositor}" (with "; deposit nonce {depositNonce}" in `unsafeDeposit`). We used "the relayer must send" to match the field label "Relayer Must Send"; it is true whether the recipient receives the wrapped token or native currency through `_unwrapwrappedNativeTokenTo` (lines 1630-1637). The 12 deposit expectations and the 3 nested deposits in the batch cases are updated. |
 | speed-up formats, "Update bridge deposit" | required | Done in d890b5e, with your wording: intent "Request bridge deposit update" and sentence "Request update of deposit {depositId} of {depositor}: {updatedOutputAmount} raw units to {updatedRecipient}". Both functions only emit `RequestedSpeedUpDeposit` (lines 874 and 928), and the relayer may ignore it (line 839). The two speed-up expectations are updated. |
 
-Description: append "Update: review round 2" of `across-Ethereum_SpokePool.md`.
+Description: append "Update: review round 2" of `across-Ethereum_SpokePool.md`. The head is now `043f71b` (a cleanup commit removed unused `metadata.constants`; no screen changed).
 
 ## Leftover on merged #3174 Base
 
