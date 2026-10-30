@@ -55,3 +55,19 @@ Description: append "Update: review round 1" of `across-Ethereum_SpokePool.md`. 
 | `testsv2/calldata-PendleRouterV4.tests.json`, native currency tests | suggestion | Done in a0b7be5. Added a real `swapExactTokenForPt` with `input.tokenIn = 0x0`, `netTokenIn = 0.5 ETH` and `msg.value = 0.5 ETH` (`0xd8db82419abb1cb7652ae56a82c97867c4ad4d092f47a9e9e889e7513ed5ed92`, block 26291981; `limit.limitRouter` is `0x0`, so it passes the only pin on that format), rendering "Amount to Pay 0.5 ETH" and "Native Value Sent 0.5 ETH". The multicall case wraps that same calldata with the same value and is encoded: a HyperSync scan of all 211,000 router multicalls since deployment found none with a non-zero value. Both runners render the nested action with its own "Native Value Sent 0.5 ETH", as the delegatecall keeps the outer `msg.value` (ActionMiscV3.sol:413-420). |
 
 Description: append "Update: review round 1" of `pendle-PendleRouterV4.md`. The test count is 48.
+
+## Round 2: #3173 Across, commit `d890b5e`
+
+#3172, #3174 and #3176 were approved and merged on 2026-10-30. #3173 got a second review with two changes; both are done.
+
+| Thread | Kind | Reply |
+|---|---|---|
+| deposit `interpolatedIntent`, "gets" | required | Done in d890b5e. The sentence now reads "Bridge {inputAmount} to {recipient} on the destination chain; the relayer must send {outputAmount}; depositor {depositor}" (with "; deposit nonce {depositNonce}" in `unsafeDeposit`). We used "the relayer must send" to match the field label "Relayer Must Send"; it is true whether the recipient receives the wrapped token or native currency through `_unwrapwrappedNativeTokenTo` (lines 1630-1637). The 12 deposit expectations and the 3 nested deposits in the batch cases are updated. |
+| speed-up formats, "Update bridge deposit" | required | Done in d890b5e, with your wording: intent "Request bridge deposit update" and sentence "Request update of deposit {depositId} of {depositor}: {updatedOutputAmount} raw units to {updatedRecipient}". Both functions only emit `RequestedSpeedUpDeposit` (lines 874 and 928), and the relayer may ignore it (line 839). The two speed-up expectations are updated. |
+
+Description: append "Update: review round 2" of `across-Ethereum_SpokePool.md`.
+
+## Leftover on merged #3174 Base
+
+A non-blocking suggestion came with the approval: the encoded case `sendMessage-l2-call-to-message-passer` in `registry/base/testsv2/calldata-L1CrossDomainMessenger.tests.json` shows a call that cannot run, because the Base L2 messenger refuses the L2ToL1MessagePasser as a target. The PR is merged, so this is a small follow-up PR: replace the case with a `sendMessage` to an L2 target the messenger accepts and that has a descriptor on chain 8453, or add a note to the case description.
+
