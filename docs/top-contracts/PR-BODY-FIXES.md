@@ -132,3 +132,8 @@ Docs only; no descriptor change.
 - **Done:** SwftSwap on chain 56 is verified on Sourcify (runtime match). The descriptor has the chain 56 deployment and one real chain 56 test case. Both runners pass 10/10. The report ends with "Update: BNB Chain deployment".
 - **To do:** add that update to the #3171 description, and change any text that says BNB Chain is not covered.
 
+## 18. Review round 1 (#3172, #3173, #3174, #3176)
+
+- **Done:** every thread of marcocastignoli's first review is addressed on the PR branches: Base `a5cd30b`, Blast `086ed51`, Across `d684482` (Pendle: pending). Each report ends with "Update: review round 1". `REVIEW-ROUND-1.md` holds one reply per thread and the agent instruction to post them.
+- **To do:** post the replies, resolve the "Done" threads, append each "Update: review round 1" section to the PR description with the permalinks of item 1, and re-request the review.
+
