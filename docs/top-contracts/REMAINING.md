@@ -1,76 +1,49 @@
-# Remaining work (stopped on 2026-10-28 to save tokens)
+# Remaining work (state of 2026-10-30)
 
-## Pendle RouterV4
-- Done: all 36 fixtures are accounted for in the claims replay (0 findings), the full report is written, and the two pins and the aggregator check are confirmed with source lines.
+## Pull requests
 
-## Upstream draft pull requests (opened 2026-10-28)
+| Contract | PR | State |
+|---|---|---|
+| SwftSwap | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3171 | merged |
+| Uniswap V3 NPM | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3175 | merged |
+| Blast OptimismPortal | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3172 | open, changes requested (2 changes, 5 suggestions) |
+| Across SpokePool | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3173 | open, changes requested (1 change, 3 suggestions) |
+| Base OptimismPortal2 | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3174 | open, changes requested (2 changes, 3 suggestions) |
+| Pendle RouterV4 | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3176 | open, commented (2 suggestions) |
 
-| Contract | PR |
-|---|---|
-| SwftSwap | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3171 |
-| Blast OptimismPortal | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3172 |
-| Across SpokePool | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3173 |
-| Base OptimismPortal2 | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3174 |
-| Uniswap V3 NPM | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3175 |
-| Pendle RouterV4 | https://github.com/ethereum/clear-signing-erc7730-registry/pull/3176 |
+Each open PR's head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. The common branch `claude/nifty-euler-gwsa66` holds the same registry files plus these docs. The reviewer is marcocastignoli; approval stays with a maintainer.
 
-Each PR head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fork. A push to that branch updates the PR. The PR description must be edited by hand.
+## Now: review round 1 on the four open PRs
 
-## Smaller follow-ups
-- SwftSwap on BNB Chain (56): identical bytecode but not verified on Sourcify. Verify it, then add the deployment.
-- Runner conflict: a nested call whose inner format has an `interpolatedIntent` cannot pass both runners (Sourcify requires the nested `interpolatedIntent`, the Rust runner rejects it). Real nested test cases are kept outside the testsv2 files. Report this to the runner maintainers.
+- One agent per PR addresses every review thread, the required changes and the suggestions, checks each claim against the verified source, re-runs the registry checks and pushes to the PR branch.
+- After the agents report: copy `registry/<entity>` to the common branch, append an "Update: review round 1" section to each report, and write `REVIEW-ROUND-1.md` with one reply per thread and the description changes.
+- Then the local agent with GitHub rights: post the replies, resolve the threads that are fixed, update the four PR descriptions (fix list items in `PR-BODY-FIXES.md`), and re-request the review.
 
-## Embedded calls (`calldata` format), added 2026-10-28
-- Done on PRs 3172 (Blast), 3173 (Across), 3174 (Base), 3175 (Uniswap) and 3176 (Pendle). SwftSwap has no embedded calls.
-- Each report in this folder ends with an "Update: embedded calls" section, or for Pendle a full new report. Paste it into the PR description by hand.
-- Real nested-call test cases are kept outside the testsv2 files because of the runner conflict (see above). Their txHashes are listed in each update section.
-- Base and Blast also describe their L2ToL1MessagePasser (and Blast its airdrop contracts), so L2 calls and L1 calls are decoded in both directions.
+## Open items after that
 
-## Open decisions for the user
-- Decided: Pendle keeps the aggregator route data hidden.
-- Decided: Uniswap keeps the `@.value` pins on ETH-paying multicalls.
+- **Scripts:** `verify-entity.sh`, `regen-expected.py`, `rlp_swap.py` and the HyperSync query scripts live only in this session's scratch folder. Put them in a tools folder of the fork if they are still needed after the PRs merge.
+- **Wishlist question for the user:** a map fallback (for example `"onMissing": "raw"`), so that Pendle could use ticker maps again and a market missing from the map renders raw instead of blind. Not added; the user decides what goes on the wishlist.
+- **Across:** `chainIdPath` is written as `#.destinationChainId` because the old linter did not resolve a relative path. Check whether the linter at `ccd51ad` resolves `destinationChainId`; if it does, the relative form is the simpler one.
+- **General tooling, not needed by our PRs:** spec map references in the Rust runner and the linter (python-erc7730 drops them, also in its Ledger conversion). Check whether the fixes of 2026-10-29 covered them.
+- **Pendle:** PT, YT and SY amounts are raw because the calldata names only the market. A spec change (`tokenFrom`, see the spec-limitation note) or the map fallback above would give them tickers.
 
-## To do: runners and library limits (added 2026-10-29)
-- **Fix the Rust runner ourselves when registry CI fails on it.** Two known gaps: it renders a byte slice past the end of the data as `<unresolved>` where the Sourcify runner renders 0 (Blast `_extraData.[0:32]`), and its `NestedExpected` rejects a nested `interpolatedIntent` that the Sourcify runner requires.
-- **Features that were avoided because of a library or device limit are now implemented (2026-10-29):**
-  - Base #3174 and Blast #3172: L2 calls use the `calldata` format with `chainId`. Schema validation passes since the registry synced the spec (#3180); lint fails on these fields until the linter change is released.
-  - Blast #3172: `_extraData` is a DAI `tokenAmount` slice. The Rust runner fails two cases on empty data (`<unresolved>`); fix the runner.
-  - Uniswap #3175: the `mint` ticks are shown. Both runners render them correctly.
-  - Across #3173: `destinationChainId` uses the `chainId` format plus an override enum for 14 ids, `outputAmount` and the output token use the destination chain, and the bytes32 depositor uses `addressName`. The Sourcify runner fails seven cases (address formats on bytes32).
-  - Pendle #3176: `swapTokensToTokens` and `redeemDueInterestAndRewardsV2` described. Maps were tried and removed, because a missing key makes new markets blind. Both runners pass.
-  - All: clear-signing-helper does not support the `calldata` format, so those fields are added by hand.
-- **Expected CI state:** Base and Blast show lint errors on `chainId` until the linter is updated, Blast shows two Rust runner failures, and Across shows seven Sourcify runner failures (address formats on bytes32). Everything else should pass.
-- **Rust runner bugs to fix (found 2026-10-29):** its chain-name table has 16 entries and shows other chains as "Chain <id>" (render_shared.rs line 18); a chain id above 64 bits shows "Chain 0" and resolves the token on the signing chain (engine.rs lines 2307-2334); the byte-slice and nested `interpolatedIntent` gaps listed above.
-- **Linter bug to report or fix (sourcifyeth/python-erc7730 at 964176e):** `resolve_token_amount_parameters` does not resolve a relative `chainIdPath` (parameters.py lines 219 and 285), so `"chainIdPath": "destinationChainId"` gives false errors. Across uses `#.destinationChainId` until it is fixed.
-- **Across chain id 999: resolved.** An override enum names 999 "HyperEVM" and Solana "Solana", and also the ids the Rust runner cannot name.
+## Decisions that hold
 
-## To do at the end: tooling must accept address formats on `bytes32`
-- ERC-7730 tooling should allow `addressName` and `tokenTicker` on a `bytes32` value that holds an EVM address in its low 20 bytes. Across #3173 already uses this for the bytes32 `depositor` and `outputToken`.
-- **Sourcify runner / `@ethereum-sourcify/clear-signing`:** rejects it with `ARGUMENT_TYPE_MISMATCH: "Format addressName expects address but got bytes"` (dist/index.js lines 993-995 and 1133-1141) and shows the raw 32 bytes. Fix the library, then bump the runner pin.
-- **Linter and schema:** they accept it today; check again after any linter update.
-- **Rust runner:** accepts it.
+- Mainnet focus; no new deployments on other chains (the BNB Chain SwftSwap deployment was added because the bytecode is identical and the contract is now verified).
+- Every spec feature is used where it fits; tool bugs are fixed or reported, not hidden.
+- Embedded calls use the `calldata` format everywhere, with `chainId` where the call runs on another chain.
+- `addressName` and `tokenTicker` on `bytes32` only when the value is always an EVM address.
+- Pendle keeps the aggregator route data hidden. Uniswap keeps the `@.value` pins on ETH-paying multicalls. Pendle PT, YT and SY amounts are raw (maps removed: a missing key makes the descriptor invalid, and Pendle creates markets often).
+- The spec wishlist only gets items the user approves. It was filed as an issue in the registry repository, not in ethereum/ERCs.
 
-## ERC-7730 `chainId` in `calldata` (ethereum/ERCs PR 2124)
-- The schema change is in ethereum/ERCs PR 2124 and was synced into the registry by #3180 (2026-10-29). The common branch and all six PR branches include upstream master with that sync, so schema validation passes.
-- **To do:** the registry linter (sourcifyeth/python-erc7730) must accept `chainId` / `chainIdPath` in the `calldata` parameters. Until then, lint reports two errors per `chainId` field in the Base and Blast descriptors. After the linter change, bump the linter pin in the registry.
-- Done: the registry synced `specs/` from ethereum/ERCs with the change (#3180).
+## Done
 
-## To do: Pendle maps and tooling (added 2026-10-29)
-- Done: the Pendle maps are removed (new markets were blind until a refresh). PT, YT and SY amounts are raw.
-- **Rust runner:** support spec map references in `tokenAmount` `token` (general fix; no PR of ours uses maps now) (it expects a string and its own `entries`/`mapReference` map model), in addition to the nested `interpolatedIntent` gap.
-- **Linter (python-erc7730):** resolve map references instead of dropping them ("Unresolved map reference ... will be dropped"). Its Ledger conversion also drops map references. No PR of ours uses maps any more, so this is a general fix.
+- 2026-10-28: six descriptors built with clear-signing-helper plus hand-written spec features; six draft PRs opened.
+- 2026-10-29: embedded calls described with `calldata`; L2 contracts added for Base (L2ToL1MessagePasser) and Blast (L2ToL1MessagePasser, Airdrop, AirdropVesting); `chainId` in `calldata` adopted after ethereum/ERCs PR 2124 and registry #3180; Pendle maps removed; SwftSwap verified on Sourcify for chain 56 and the deployment added; PR descriptions rewritten with commit permalinks and the PRs marked ready; the wishlist issue and the clear-signing-helper issue opened (`SPEC-WISHLIST.md`, `HELPER-IMPROVEMENTS.md`).
+- 2026-10-29: tooling fixed upstream and the registry pins bumped in #3182 (linter `ccd51ad`, Rust runner `8bfe6b49`, Sourcify runner `277965de` with library 0.3.1). This covered the nested `interpolatedIntent` in test files, `chainId` in `calldata` for the linter, address formats on `bytes32` in the Sourcify library, the empty byte slice in the Rust runner, and the chain names. The nested-call test cases from `nested-tests/` are now in the Base, Blast and Pendle test files. All four open PRs pass every registry check.
+- 2026-10-30: #3171 and #3175 merged.
 
-## Agent instructions (2026-10-29)
-- `AGENT-INSTRUCTIONS.md` in this folder holds one instruction per remaining task, each with the repository to run it on: PR descriptions and ready for review, the Rust runner, the linter, the Sourcify library and runner, the registry pin bumps with the nested test cases, SwftSwap on BNB Chain, and the wishlist issue.
-- The spec wishlist goes to an issue in ethereum/clear-signing-erc7730-registry, not to ethereum/ERCs.
-- The nested-call test cases are in `nested-tests/` in this folder, regenerated against the current descriptors.
-- Ran on 2026-10-29: 1 (PR descriptions, ready for review), 2 (Rust runner), 3 (linter), 4 (Sourcify library and runner), 6a (SwftSwap verified on Sourcify for chain 56, deployment and test added, both runners 10/10) and 6b (wishlist issue). This session cannot read the upstream PRs to check the results.
-- Still to run: 5 (pin bumps and nested test cases), after the fixes of 2, 3 and 4 are merged and released.
-- Done on 2026-10-29: the #3171 description has the BNB Chain update (fix list item 17), and portdeveloper/clear-signing-helper has one issue with the list in HELPER-IMPROVEMENTS.md.
+## Local tooling of this session
 
-## State on 2026-10-30
-- Merged: #3171 SwftSwap and #3175 Uniswap V3 NPM.
-- Open with a human review by marcocastignoli: #3172 Blast (2 changes, 5 suggestions), #3173 Across (1 change, 3 suggestions), #3174 Base (2 changes, 3 suggestions), #3176 Pendle (0 changes, 2 suggestions). One agent per PR addresses every thread; see `REVIEW-ROUND-1.md` when it exists.
-- Instruction 5 is done: upstream #3182 bumped the pins (linter `ccd51ad`, Rust runner `8bfe6b49`, Sourcify runner `277965de` with library 0.3.1), every PR branch includes upstream master, and the nested-call test cases are in the Base, Blast and Pendle test files. With the new pins all four open PRs pass lint (0 errors), schema, both runners and the index check. The "Expected CI state" section above is therefore history.
-- The local copies of the pinned runners are `/root/.cache/clear-signing-helper/runners/rust-8bfe6b49` and `sourcify-277965de`; `verify-entity.sh` uses them and the new linter pin.
-
+- Full check: `REPO=<worktree> verify-entity.sh <entity> <Name>...` runs the pinned lint, the schema check, both runners (`/root/.cache/clear-signing-helper/runners/rust-8bfe6b49`, `sourcify-277965de`) and the index check.
+- Worktrees `wt-<entity>` per PR branch, under the scratch folder `work/`.
