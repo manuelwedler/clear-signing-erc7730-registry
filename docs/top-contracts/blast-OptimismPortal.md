@@ -1,0 +1,210 @@
+# Blast OptimismPortal (L1, Ethereum mainnet) — ERC-7730 calldata descriptor
+
+> **Draft notice.** This descriptor was written for the registry's top-contracts effort. It was **not** submitted by the Blast team. It was authored from the verified source on Sourcify and from Blast's public deployment docs, by a language-model agent with the clear-signing-helper 0.6.0-preview.6. Every decision below is marked with the source line that justifies it. It is a draft for registry review; nobody from Blast has reviewed it.
+
+## Summary
+
+- **Contract:** `OptimismPortal` 1.10.0 (Blast's fork of the OP-stack portal), proxy `0x0Ec68c5B10F21EFFb74f2A5C61DFe6b08C0Db6Cb` on Ethereum (chain 1), EIP-1967 proxy to implementation `0xA280aEBF81c917DbD2aA1b39f979dfECEc9e4391`. Both are Sourcify full matches (compiler 0.8.15).
+- **L2 chain identified as Blast (chain id 81457).** Evidence: the contract's live `systemConfig()` is `0x5531DcfF39EC1ec727C4c5D2fc49835368F805a9` and `l2Oracle()` is `0x826D1B0D4111Ad9146Eb8941D7Ca2B6a44215c76`; Blast's docs page https://docs.blast.io/building/contracts lists `OptimismPortal 0x0Ec68c5B10F21EFFb74f2A5C61DFe6b08C0Db6Cb` and `L2OutputOracle 0x826D1B0D4111Ad9146Eb8941D7Ca2B6a44215c76` under the mainnet L1 contracts; the verified source carries Blast-only files (`src/L2/Blast.sol`, `src/mainnet-bridge/ETHYieldManager.sol`, `src/mainnet-bridge/withdrawal-queue/WithdrawalQueue.sol`) and the portal's `yieldManager()` is `0x98078db053902644191f93988341E31289E1C8FE`. `cast chain-id` on https://rpc.blast.io returns 81457. The address is not in the Superchain registry (Blast is not a Superchain member), which is why the brief could not name it.
+- **Entity:** `blast` (the chain's lowercase name, as the brief's entity note asks). `registry/blast/` does not exist in the clone yet.
+- **Not already in the registry:** no file under `registry/` contains `proveWithdrawalTransaction`, `finalizeWithdrawalTransaction` or `depositTransaction(`; the address appears nowhere in the clone.
+- **Files:** `bundle/registry/blast/calldata-OptimismPortal.json` and `bundle/registry/blast/testsv2/calldata-OptimismPortal.tests.json`.
+- **Result:** erc7730 lint exit 0 (0 errors, 10 warnings); Sourcify runner 5/5; Rust runner 5/5; strict portability no findings; claims replay 445 runs, 0 findings.
+
+## Coverage
+
+### Described (3 functions)
+
+| Function | Share of 7-day traffic | Intent |
+|---|---|---|
+| `proveWithdrawalTransaction((uint256,address,address,uint256,uint256,bytes),uint256,(bytes32,bytes32,bytes32,bytes32),bytes[])` | 2859 / 5845 | Prove Blast withdrawal |
+| `finalizeWithdrawalTransaction(uint256,(uint256,address,address,uint256,uint256,bytes))` | 2978 / 5845 | Finalize Blast withdrawal |
+| `depositTransaction(address,uint256,uint64,bool,bytes)` | 1 / 5845 (plus 13 plain ETH sends through `receive()`) | Deposit ETH to Blast |
+
+`receive()` needs no entry. There is no `fallback()`.
+
+### Excluded (3 functions)
+
+| Function | Reason |
+|---|---|
+| `pause()` | `require(msg.sender == guardian, ...)` (OptimismPortal.sol line 172). Only the guardian (`0x4f72ee94B8ba3Be7F886565d3583A7F636c58B05`, a contract) can call it; it reverts for any other signer. |
+| `unpause()` | Same guard, line 179. |
+| `initialize(address,address,address,bool,address)` | `reinitializer(Constants.INITIALIZER)` (line 139). It runs once per upgrade, by the proxy admin; it reverts for everyone else. |
+
+The lint also warns about the proxy's own `admin()`, `changeAdmin(address)`, `implementation()`, `upgradeTo(address)`, `upgradeToAndCall(address,bytes)`. They are the EIP-1967 `Proxy` contract's admin interface (`src/universal/Proxy.sol`), callable only by the proxy admin; they are not part of the OptimismPortal ABI the helper imports, so they are not in the decisions file and are not described.
+
+### Hidden fields (all written as `visible: "never"`)
+
+`proveWithdrawalTransaction` and `finalizeWithdrawalTransaction` take the withdrawal as a struct `_tx`. The contract hashes the whole struct (`Hashing.hashWithdrawal(_tx)`, lines 243 and 318) and accepts it only if that hash is proven in the L2 state (`SecureMerkleTrie.verifyInclusionProof`, lines 272-277) or was proven before (`provenWithdrawal.timestamp != 0`, line 324). A dapp cannot change any struct member without the call reverting, so the hidden members cannot make the screen false.
+
+| Field | Where | Reason |
+|---|---|---|
+| `_tx.nonce` | both | Withdrawal nonce, part of the bound hash; the signer does not choose it. |
+| `_tx.gasLimit` | both | Minimum gas the L1 call gets at finalization (`SafeCall.callWithMinGas`, line 385); bound by the hash; it does not change what moves. |
+| `_tx.data` | both | Calldata of the L1 call; bound by the hash (see "What the screens say" for what it carries). |
+| `_l2OutputIndex` | prove | Index of the L2 output the proof is checked against (line 235); a mismatch reverts (lines 238-240). |
+| `_outputRootProof.{version,stateRoot,messagePasserStorageRoot,latestBlockhash}` | prove | Proof material; `hashOutputRootProof` must equal the oracle's root (lines 238-240). |
+| `_withdrawalProof.[]` | prove | Merkle proof nodes; a wrong proof reverts (lines 272-277). |
+| `hintId` | finalize | Checkpoint lookup hint for the yield manager. `WithdrawalQueue._calculateClaimableEther` reverts with `InvalidHint` unless `hintId` is exactly the checkpoint that contains the withdrawal's request (checks `_hintId == 0`, `_hintId > lastCheckpointId`, `_requestId < checkpoint.fromRequestId`, `_requestId >= nextCheckpoint.fromRequestId`). It can make the call fail; it cannot change the amount paid. |
+
+### Pinned arguments (`mustMatch`)
+
+None. Every argument that could switch a shown statement off is either shown (`depositTransaction`: all five arguments and `@.value` are visible) or cryptographically bound (the `_tx` struct, above). `hintId` only selects a checkpoint and reverts when wrong, so there is nothing to pin.
+
+## What the screens say
+
+### `depositTransaction(address _to, uint256 _value, uint64 _gasLimit, bool _isCreation, bytes _data)` — payable
+
+Sentence: **"Deposit {@.value} to Blast and send {_value} on L2 to {_to}"**. Fields: Deposit Amount (`@.value`, `amount`), L2 Recipient (`_to`, `addressName` eoa/contract), ETH to Send on L2 (`_value`, `amount`), L2 Gas Limit (`_gasLimit`, raw), L2 Transaction (`_isCreation`, enum `depositKind`: true = "Contract creation", false = "Transfer or call"), L2 Call Data (`_data`, raw).
+
+- `@.value` is what leaves the signer on L1. It is forwarded to the yield manager (lines 470-473) and encoded as the L2 mint (`opaqueData = abi.encodePacked(msg.value, _value, ...)`, line 466), so the mint equals `msg.value` exactly. The `_to == L2_BLAST_BRIDGE` branch (lines 459-467), where the mint is `_value` instead, reverts for every caller but the Blast bridge (line 460-463), so a wallet signer never reaches it.
+- `_value` is the ETH value of the derived L2 call, paid from the depositor's L2 balance (which includes the mint). It is shown as its own amount, not merged with `@.value`, because the two can differ. The sentence says "send ... on L2" so the signer does not read it as a second L1 payment. It is exact: the L2 transaction carries exactly `_value` or fails.
+- `_data` runs on Blast from the depositor's own L2 account against `_to`. That is an L2 transaction the signer authorizes, so it stays visible. The spec's `calldata` format (`calleePath: _to`, `chainId: 81457`, `amountPath: _value`) would describe it properly; the helper rejects it (`UNSUPPORTED_FORMAT: calldata is not a supported format`), which is a tool limitation, so the field is shown as raw bytes.
+- `_isCreation = true` forces `_to == address(0)` (lines 424-426); the enum makes that case readable next to the zero recipient.
+- `_gasLimit` must be at least `21000 + 16 * data.length` (line 430); it is shown raw because the L1 gas burned for it (`metered` modifier) is bounded by the transaction's own gas limit, which the wallet shows anyway.
+- Caveat the spec cannot express: when the signer is a contract (a Safe), the mint is credited to the aliased address (lines 438-442). See SPEC-LIMITS.md.
+
+### `proveWithdrawalTransaction(_tx, _l2OutputIndex, _outputRootProof, _withdrawalProof)`
+
+Sentence: **"Prove withdrawal of {_tx.value} from {_tx.sender} to {_tx.target}"**. Fields: Requested Amount (`_tx.value`, `amount`), L1 Recipient (`_tx.target`), L2 Sender (`_tx.sender`).
+
+- Proving is permissionless and moves nothing of the signer's. Its effect is to register the withdrawal and, on the first proof of a withdrawal with value, to request `_tx.value` from the ETH yield manager's queue (`yieldManager.requestWithdrawal(_tx.value)`, lines 282-283). The label "Requested Amount" names that effect.
+- `_tx.target` is the L1 address that will be called with the ETH at finalization (line 385); `_tx.sender` is the L2 account that initiated the withdrawal (the L2CrossDomainMessenger `0x4200…0007` for every bridge withdrawal). Both get `addressName` with types `eoa`/`contract`, no `sources` restriction.
+- Guards the sentence relies on: target may not be the portal (line 231) nor the yield manager (line 289); re-proving is allowed only after the output root changed (lines 252-256).
+
+### `finalizeWithdrawalTransaction(uint256 hintId, _tx)`
+
+Sentence: **"Finalize withdrawal of up to {_tx.value} from {_tx.sender} to {_tx.target}"**. Fields: Maximum Amount (`_tx.value`, `amount`), L1 Recipient, L2 Sender.
+
+- The portal claims the ETH from the yield manager and forwards what it actually received: `txValueWithDiscount = address(this).balance - etherBalance` (lines 372-376), then `callWithMinGas(_tx.target, _tx.gasLimit, txValueWithDiscount, _tx.data)` (line 385). The claimed amount is `nominal * checkpoint.sharePrice / 1e27` (`WithdrawalQueue._calculateClaimableEther`), and `_finalize` reverts with `InvalidSharePrice` when `sharePrice > 1e27`; `YieldManager.sharePrice()` (lines 378-384) is `value / (value + accumulatedNegativeYields)`, so it is at most 1. The payout is therefore at most `_tx.value`, never more: the label says "Maximum" and the sentence says "up to".
+- Finalization is permissionless; the finalizer's own assets do not move. The claims replay confirms it: in the real ETH finalization the finalizer was also the end beneficiary and "sender received 1050000000000000" while the screen said "at most 1050000000000000".
+
+### The common case: bridge withdrawals show the messenger as recipient
+
+Almost every withdrawal on this portal is a bridge message: `_tx.sender` = L2CrossDomainMessenger, `_tx.target` = L1CrossDomainMessenger (`0x5D4472f31Bd9385709ec61305AFc749F0fA8e9d0`, per Blast's docs), and the end beneficiary and token sit inside `_tx.data` → `relayMessage(...)` → `finalizeBridgeETH/ERC20(...)`, two levels down. The descriptor shows the portal-level truth (value and the messenger) and names the messengers in the tests' `addressNames` so the renderings read "from L2CrossDomainMessenger to L1CrossDomainMessenger". Decoding the inner message would need the spec's `calldata` format (one level, supported by the spec) plus descriptors for `L1CrossDomainMessenger.relayMessage` and the bridges; the helper does not support the format and the registry has no such descriptors. That is a tool and ecosystem limitation, recorded here, not in SPEC-LIMITS.md. Because both calls are permissionless and the struct is hash-bound, the gap cannot be used against the signer's own funds; the worst case is paying gas to prove or finalize someone else's withdrawal.
+
+## Deployments
+
+| Chain | Address | Evidence |
+|---|---|---|
+| 1 (Ethereum) | `0x0Ec68c5B10F21EFFb74f2A5C61DFe6b08C0Db6Cb` | Sourcify full match of proxy and implementation; Blast docs list it as the mainnet OptimismPortal; live `l2Oracle()`/`systemConfig()`/`version()` read as described above. |
+
+**Candidates not added**
+
+- **Blast Sepolia portal on Sepolia (chain 11155111), `0x2757E4430e694F27b73EC9C02257cab3a498C8C5`** (listed in Blast's docs, live `version()` = "1.10.0", `l2Oracle()` = `0x311fF72DfE214ADF97618DD2E731637E8F41bD8c`). Not added: its implementation `0x05167e2D02022AdBeE1f4F97aA9503F6848dC55c` is not verified on Sourcify (HTTP 404), so the verified source cannot be compared and the registry linter could not fetch an ABI for it; its runtime bytecode also differs from mainnet's (36188 vs 36464 hex characters), so it is not the same build. It is also a testnet.
+- No other chain has this contract: an OptimismPortal is specific to one L2, and Blast has one mainnet portal.
+
+## Tests
+
+`bundle/registry/blast/testsv2/calldata-OptimismPortal.tests.json`, 5 cases, all on chain 1. `dataProvider.addressNames` names the three messenger/predeploy contracts (addresses from Blast's docs and the OP-stack predeploy table).
+
+| Case | Kind | Transaction | What it shows |
+|---|---|---|---|
+| `proveWithdrawalTransaction - chain 1` | real | `0x9d2d0f0773011eab78383366d96545f3d16c01c4dfd4f4b7655000fa10c20645` | 0.001041 ETH bridge withdrawal, messenger to messenger |
+| `finalizeWithdrawalTransaction-eth - chain 1` | real | `0xb1ac3b0e814465d8fb6ee8c16cb52dfc94e3a2a224287c78f823a32c8cfbe779` | ETH finalization, "up to 0.00105 ETH", `hintId` 708 hidden |
+| `finalizeWithdrawalTransaction - chain 1` | real | `0x4ad03ceacd8c6d8eebe66efd55204bc43b96fd70ae711066d8ec51c04864722a` | ERC-20 (DAI) bridge finalization: value 0 ETH, token inside nested data |
+| `depositTransaction - chain 1` | real | `0x655e2c9909ada76460329b3c9369f511f5bca6178cfb9d3f15d94201c59a7af0` | 0 ETH deposit that calls L2ToL1MessagePasser with 0.0000349 ETH of L2 value and raw call data |
+| `depositTransaction-eth - chain 1` | encoded | none | 0.1 ETH deposit to the sender's own address, empty data. Encoded because none of the last 1000 portal transactions (blocks 26282314-26291418) is a direct `depositTransaction` with `msg.value > 0`; users deposit through the L1 bridges. Sender is a real portal user (`0x01eD5c94DE39E73C986b98B85C2c0A3d1BEDff7D`). |
+
+Real transactions: 4. Encoded: 1.
+
+## Checks
+
+- **Helper:** clear-signing-helper 0.6.0-preview.6; Foundry cast 1.5.1.
+- **Lint:** `erc7730 lint --require-verified` at the clone's pin (`sourcifyeth/python-erc7730@964176e28918299dfecb269e20a267a652ada475`): exit 0, **0 errors, 10 warnings**: 1 "Display intent too long" covering the three interpolated intents (59, 74 and 65 characters; kept because each states the amount and both parties), and 7 "Missing display format" for `initialize`, `pause`, `unpause` (excluded, see above) and the proxy's `admin`, `changeAdmin`, `implementation`, `upgradeTo`, `upgradeToAndCall`. The ABI was fetched (no "Could not fetch ABI").
+- **Registry runners** (pins read from the clone at `d0f354b1721382206bfd03951042e4401caae727`): Sourcify `@ethereum-sourcify/clear-signing@0.3.0` (ref `9d6d2fe4715d53e002bb966f6593e1fbc44b53c7`) **5/5 pass**; Rust `llbartekll/clear-signing@0.1.0` (ref `65af2281aa1366e1d770f9ac445007e56dbe29ca`) **5/5 pass**. Logs under `bundle/review/runners/`.
+- **Strict portability:** `--strict-portability` produced no findings (the `bytes[]` proof array is hidden). No function was dropped for it.
+- **Claims replay:** `clear-signing claims` on `https://eth.drpc.org` failed on the first fixture with a transport error (`peer closed connection without sending TLS close_notify`); the rerun on `https://mainnet.gateway.tenderly.co` completed: depositTransaction 55 runs, finalizeWithdrawalTransaction-eth 165 runs, finalizeWithdrawalTransaction 110 runs, proveWithdrawalTransaction 115 runs, **0 findings**. The encoded deposit fixture is not replayed (no txHash). Notes from the run: "ETH to Send on L2" is reported "unmoved" on L1, which is expected because it is the L2 call value; "Maximum Amount" holds in the ETH finalization. Flashbots was not needed.
+- **Helper check warnings:** 3 `INTENT_LENGTH` (same as lint). No `SENTENCE_OMITS`, `LIMIT_WORDING`, `TAIL_SLICE_TOKEN` or `PERMIT_GRANT_HIDDEN`.
+- **Did not run / not performed:** wallet or device rendering; any Blast-team review; a Sepolia test case (candidate rejected, above). `registryMatches` from `init` was read indirectly: the clone has no descriptor with these selectors and no mention of the address.
+- **Tool limitation:** the helper rejects the spec's `calldata` field format (`UNSUPPORTED_FORMAT`), so embedded calls (`_data` on deposit, `_tx.data` on withdrawals) cannot be described even one level deep.
+
+## Flags for the integrator
+
+- The three interpolated intents exceed 30 characters (lint warning only).
+- For bridge withdrawals the screen names the L1CrossDomainMessenger as recipient; the end beneficiary is inside hidden, hash-bound call data. Both calls are permissionless and cannot move the signer's funds.
+- Finalization pays at most `_tx.value`; the real amount is `value × sharePrice`, read from the yield manager at finalization.
+- A contract-wallet depositor's ETH is credited on Blast to the aliased address, not to the wallet's own address.
+- Traffic to selectors that are not in this ABI reverts: `0xfa92670c` = `depositTransaction(address,uint256,uint256,bool,bytes)` (the OP Mainnet signature with `uint256` gas limit), 6 failed calls in the last 1000 transactions; the brief's single legacy `finalizeWithdrawalTransaction((...))` call is the same kind of mistake. No descriptor can make those succeed.
+
+## Update: embedded calls (`calldata` format) and three new descriptors
+
+Paste this section into PR #3172. It supersedes the earlier text on `_tx.data` and on the partial screen for bridge withdrawals.
+
+**Coverage.**
+- **OptimismPortal:** the same functions as before. On prove and finalize, `_tx.data` is now a visible `calldata` field with callee `_tx.target`, amount `_tx.value` and spender the portal (OptimismPortal.sol line 385 calls the target from the portal). Finalize pays `txValueWithDiscount`, which is at most `_tx.value` (lines 371-376), so the "maximum" wording stays. On prove, the field shows the call that finalization will make; the data is bound by the withdrawal hash (lines 243, 272-277). `depositTransaction._data` stays raw, because the v2 schema has no cross-chain `chainId` for embedded calldata.
+- **New `calldata-L1CrossDomainMessenger.json`:** proxy `0x5D4472f31Bd9385709ec61305AFc749F0fA8e9d0` (ResolvedDelegateProxy, implementation `0x84efcFCE2dEe08072d5D57BF232D379b6E92A836`, version 1.7.1). Describes `sendMessage` and `relayMessage`. `relayMessage._message` is a `calldata` field with callee `_target`, amount `_value` and spender the messenger (L1CrossDomainMessenger.sol line 148). `initialize` is excluded.
+- **New `calldata-L1StandardBridge.json`:** proxy `0x697402166Fbf2F22E970df8a6486Ef171dbfc524` (L1ChugSplashProxy, implementation `0xD2C23A5A280AFF9182b953579f62EDdDF1c7ff22`, version 1.4.1). Describes the 8 deposit and bridge functions and the 4 finalize functions. `initialize` is excluded.
+- **New `calldata-L1BlastBridge.json`:** proxy `0x3a05E5d33d7Ab3864D53aaEc93c8301C1Fa49115` (L1ChugSplashProxy, implementation `0x7A2075519Dd9598b62075FD397aF0Dd34b14619a`, version 1.0.0). Describes 4 bridge functions and 2 finalize functions. `initialize`, `setETHYieldToken` and `setUSDYieldToken` are excluded.
+- All addresses come from Blast's docs and are full matches on Sourcify (solc 0.8.15). Each descriptor binds only the proxy on chain 1.
+- **Hidden fields:** gas limits (a failed relay can be replayed), nonces (bound by the hash), opaque `_extraData` (only emitted), and the local token (it is the ticker of the amount).
+
+**What the screens say.**
+- A withdrawal now renders in three levels: the portal value, then the messenger "Relay up to X from <L2 bridge> on Blast to <L1 bridge>", then the bridge payout with Maximum Amount, Paid To and Withdrawn By. For USDB, the last level is "Queue DAI claim for Blast USDB", because the bridge calls `usdYieldManager.requestWithdrawal(_to, _amount)` (L1BlastBridge line 209) and the later claim is scaled by the share price.
+- Every ETH amount after the portal is a maximum, because Blast pays a discounted value. The bridge pays `msg.value`, which is at most `_amount` (L1StandardBridge lines 180 and 190, L1BlastBridge lines 163 and 173).
+- The finalize screens describe someone else's withdrawal. The signer's own funds do not move.
+- Bridge deposits: "Bridge {amount} to your address on Blast" or "… to {_to} on Blast". The variants without `To` are `onlyEOA` (StandardBridge line 107), so the recipient is the same address on Blast. The ERC-20 amount is exact (lines 352-354). "Token on Blast" shows `_remoteToken` raw, because it is an L2 address.
+- On L1BlastBridge, `_extraData` of a USDC or USDT bridge is a minimum output (USDConversions lines 138-142). It is shown raw as "Min Out (USDC/USDT)".
+
+**Tests.**
+- OptimismPortal 4 cases: real `0x655e2c99…7af0` (deposit with data), `0x177478d9d2f2391e649f941b441c4e4786679b109acee84a30698e62a27f8cab` (finalize to an EOA) and `0x5587fdcb02a0cfe0c93ef259c5b6cfe088371857e96b3cd2cbc89a9a2cb59632` (prove to an EOA), and one encoded ETH deposit.
+- L1CrossDomainMessenger 3 cases: real `sendMessage` `0xf995205a372fbc76d4fe89bd1af2091432d04916bc0607f8e0c01967888c522e` and `0xf29204a885aa026222a1c6ef57593cf7477a1e4227aa18b6bb04ba9ce24e2922`, and one encoded `relayMessage` to an EOA. HyperSync found no successful direct `relayMessage` on the whole chain.
+- L1StandardBridge 12 cases: 8 real deposits, and 4 encoded finalize calls whose arguments come from the inner messages of real withdrawals `0x9e471368…` and `0x760b0a26…`. The finalize functions are never called directly.
+- L1BlastBridge 8 cases: 5 real (stETH, USDT, DAI, `bridgeETH`, `bridgeETHTo`), and 3 encoded (`bridgeERC20To`, never called directly, and the two finalize functions with arguments from `0xb1ac3b0e…` and `0x4ad03cea…`).
+- Real nested withdrawals render correctly in both runners, down to the bridge payout, but cannot be committed because of the runner conflict on nested `interpolatedIntent`: `0xb1ac3b0e814465d8fb6ee8c16cb52dfc94e3a2a224287c78f823a32c8cfbe779`, `0x4ad03ceacd8c6d8eebe66efd55204bc43b96fd70ae711066d8ec51c04864722a`, `0x9d2d0f0773011eab78383366d96545f3d16c01c4dfd4f4b7655000fa10c20645`, `0x9e471368362428caa8d164d185a08afa759a5a204309978d29709ff771c786d3`, `0x760b0a2658e02bd71553b2ab47f92074f70463fd25aa83c493e6c0221179748d`, `0xc88535ff48b9e54ce265776794736e6ff75af7a4d81da17a2f83f6f024d64186`.
+
+**Checks.**
+- Lint at the registry pin: 0 errors in all four files. The warnings are intent length, missing formats for proxy-admin and excluded functions, and "Unknown selector", because the linter reads the unresolved proxy ABI from Sourcify.
+- Both registry runners pass every case: OptimismPortal 4/4, L1CrossDomainMessenger 3/3, L1StandardBridge 12/12, L1BlastBridge 8/8.
+- The new descriptors were built with clear-signing-helper 0.6.0-preview.6 (`--strict-portability --registry-runners`, no portability findings). Claims replayed 18 real fixtures with 0 findings. A language-model agent added the `calldata` fields by hand, because the helper does not support that format.
+
+## Update: gas unit and aliasing note on `depositTransaction`
+
+Add this to the PR description as well.
+
+- **L2 gas limit:** `_gasLimit` now uses the ERC-7730 `unit` format with `base: "gas"`, instead of `raw`. It is a number of gas units, not an amount of ETH, so `amount` would be wrong. Both runners render it like the spec's `unit` example, without a space, for example `100000gas`.
+- **Aliasing note:** `depositTransaction` now opens with a constant field, `{ "label": "Note", "value": "From a contract wallet, the ETH is credited to its aliased address on Blast.", "format": "raw" }`. A field with a literal `value` and no `path` is allowed by the spec to display a constant. The portal credits a non-EOA sender's ETH to its L1-to-L2 alias, the address plus `0x1111000000000000000000000000000000001111`, not to the same address on Blast. A Safe user who expects the ETH at the Safe's own address on Blast would otherwise be surprised.
+- **Tests:** the expected screens of both `depositTransaction` cases include the note and the new gas format. The full CI check passes, and both runners pass every case.
+
+## Update: L2 calls decoded with `chainId`, and the DAI minimum
+
+Add this to the PR #3172 description as well.
+
+- **L2 calls:** `OptimismPortal.depositTransaction._data` is now a `calldata` field: callee `_to`, `chainId: 81457`, amount `_value`, spender `@.from`. `L1CrossDomainMessenger.sendMessage._message` is now a `calldata` field: callee `_target`, `chainId: 81457`, amount `@.value`, spender the L2 messenger `0x4200000000000000000000000000000000000007`. `_isCreation` is now pinned to false, because creation data is not calldata. When no descriptor exists for the callee on Blast, the wallet shows the call data raw, as the spec allows.
+- **Schema status:** the ERC-7730 v2 schema allows `chainId` and `chainIdPath` in the `calldata` format since ethereum/ERCs PR 2124, synced into this registry by #3180, and this branch includes that sync. Schema validation passes. The pinned registry linter does not know the two parameters yet and reports two errors per `chainId` field; that is a linter update, not a descriptor problem.
+- **DAI minimum:** `L1BlastBridge.bridgeERC20` and `bridgeERC20To` now show `_extraData.[0:32]` as a DAI amount labelled "Min DAI if USDC/USDT", instead of raw bytes. For USDC and USDT, the bridge decodes exactly 32 bytes of `_extraData` as the minimum DAI from the Curve swap, which sets the minimum USDB minted (USDConversions.sol lines 130-142). For DAI and stETH the data is ignored and empty.
+- **Runner difference:** for the empty data of the DAI and stETH cases, the Sourcify runner renders "0 DAI" and the Rust runner renders `<unresolved>`. The expected value follows the Sourcify runner, so the Rust runner fails those two cases. The spec does not define slices past the end of the data (see the spec-limitation notes).
+- **Tests:** the expected screens are updated. Both registry runners pass every other case.
+
+## Update: L2 token shown as a ticker
+
+Add this to the PR #3172 description as well.
+
+- The "Token on Blast" field of the ERC-20 deposit and bridge functions (`_remoteToken` or `_l2Token`) now uses the ERC-7730 `tokenTicker` format with `chainId: 81457`, instead of a raw address. The spec lets `tokenTicker` take the chain on which the token is deployed, and the wallet resolves the ticker there.
+- The test data holds the L2 tokens of the test cases (BLAST, OLE, BAG and USDB), each read with `symbol()`, `name()` and `decimals()` on Blast. None of them has code on Ethereum. Both registry runners render the tickers.
+
+
+## Update: L2ToL1MessagePasser and the BLAST airdrop contracts on Blast
+
+Add this to the PR #3172 description as well.
+
+- **L2ToL1MessagePasser** (`registry/blast/calldata-L2ToL1MessagePasser.json`, `0x4200000000000000000000000000000000000016` on Blast, chain 81457): `initiateWithdrawal` and `burn`, the same shape as on Base. `_data` is a `calldata` field with callee `_target`, `chainId: 1`, amount `@.value` and spender the Blast portal `0x0Ec68c5B10F21EFFb74f2A5C61DFe6b08C0Db6Cb`. Because Blast pays withdrawn ETH at a share price of at most 1 (see the "Maximum Amount" note above), the sentence ends with "the L1 payout can be lower".
+- **Airdrop** (`registry/blast/calldata-Airdrop.json`, `0x78709467b6799092ce5eeCDfB8bc52Af74b45699`): `claim(uint256,bytes32[])` and `delegateAndClaim(address,uint256,bytes32[])`. The allocation is a `tokenAmount` in BLAST (`0xb1a5700fA2358173Fe465e6eA4Ff52E36e88E2ad`). The sentence says that the part above 1M BLAST vests: on chain, `vestingThreshold` is 1,000,000 BLAST and `vestingRate` is 10,000 basis points, and neither can change after `open()` (`setVestingParameters` reverts once `expirationTime` is set). `delegateAndClaim` runs only when the L2 messenger calls it (Airdrop.sol, `msg.sender != address(MESSENGER)`), so it is signed on Ethereum as the `_message` of `L1CrossDomainMessenger.sendMessage`, which this PR decodes with `chainId: 81457`. The allocation belongs to the L1 sender (`xDomainMessageSender`), who is the signer.
+- **AirdropVesting** (`registry/blast/calldata-AirdropVesting.json`, proxy `0x59205E0Ba04313c1C8dE1f689DD46EEeeFfe1B53`): `claim()` and `claim(address recipient)`. 950 calls on Blast, and 818 of the 914 Blast portal deposits with call data are this `claim(address)` sent from Ethereum. Those deposits now render as a nested claim.
+- **Owner check:** all three are Blast contracts. The airdrop contracts are verified on Sourcify from Blast's `src/airdrop-3` sources and are wired to the Blast L2 messenger.
+- **Tests:** L2ToL1MessagePasser 3 cases, Airdrop 3, AirdropVesting 3. Both registry runners pass every case. A real withdrawal that relays a message to the L1 messenger (`0xd7deb3dd292f10679dc352cceef723322c102474e20215177c6bf7f49da03649`) renders correctly as a nested call down to the bridge, but is kept outside the testsv2 file because of the runner conflict on nested `interpolatedIntent`.
+- **Portal test changed:** the real deposit `0x655e2c9909ada76460329b3c9369f511f5bca6178cfb9d3f15d94201c59a7af0` calls the L2ToL1MessagePasser and now renders as a nested call, so it hits the same runner conflict. It is replaced by the real deposit `0x7525951300ac7f4ae6b462c373a385584a3fc10b6f709d84086f5d250133b2d4`, whose L2 callee has no descriptor.
+- **Upstream merged:** this branch now includes upstream master with the spec sync #3180.
+
+## Update: review round 1
+
+Add this to the PR #3172 description as well. Commit `086ed51` answers the first maintainer review.
+
+- **`initiateWithdrawal` names the step, not the goal.** The intent is now "Start ETH withdrawal to Ethereum" and the sentence "Start withdrawal of {@.value} to {_target} on Ethereum; the L1 payout can be lower". The call only records the withdrawal hash and keeps the ETH in the message passer; the ETH reaches Ethereum after `proveWithdrawalTransaction` and `finalizeWithdrawalTransaction` on the portal, which pays at most `_tx.value` (OptimismPortal.sol lines 371-376, 385). The nested rendering inside the portal case `depositTransaction-nested-call` changed with it.
+- **Deposit Note covers the L2 call.** `depositTransaction` opens with "From a contract wallet, the deposit runs from its aliased address on Blast. The L2 Call and the ETH not sent to the L2 Recipient use that address." The portal sets the L2 sender to `applyL1ToL2Alias(msg.sender)` when `msg.sender != tx.origin` (OptimismPortal.sol lines 438-442); the mint and the derived L2 call both use that sender, so `_value` leaves the aliased account and `msg.value - _value` stays there. The `L2 Call` field keeps `spenderPath "@.from"`, which is exact for EOAs and EIP-7702 EOAs; ERC-7730 cannot compute the alias.
+- **Bridge sentences name the token on Blast.** L1StandardBridge: "Bridge {_amount} as {_remoteToken} to your address on Blast" (and `{_l2Token}` for the legacy `deposit*` functions); L1BlastBridge: the same with `{_remoteToken}`. Both registry runners interpolate a `tokenTicker` field as the ticker, for example "Bridge 100 USDT as USDB to your address on Blast" and "Bridge 11730445 BLAST as BLAST to your address on Blast". This is the first registry descriptor with a `tokenTicker` inside `interpolatedIntent`.
+- **Zero address means ETH on L1BlastBridge.** For stETH the bridge requires `_remoteToken == address(0)` and the recipient gets ETH through `L2BlastBridge.finalizeBridgeETHDirect` (L1BlastBridge.sol lines 273, 290-302). `tokenTicker` has no native-currency parameter, so the field is labelled "Token on Blast (zero address = ETH)". In the sentence both runners print the raw zero address for that case; the label explains it, and a wallet that treats the failed ticker lookup as an interpolation failure falls back to the intent. This is a new section in the spec-limitation note.
+- **L1BlastBridge deposits are disabled on chain.** The proxy's EIP-1967 implementation slot now holds `0xeDEC6e12b067DaDdBa9Fb555BB02b208116Fa392` (created in block 26294172, tx `0x1f15580a4cf0fa12e025c30bbd41c93b5c5f0a9bc08fd107f0c6345f9f4978f5`, verified on Etherscan, not on Sourcify). It adds `DEPOSIT_CUTOFF_BLOCK = 26298276` (line 66) and `require(block.number <= DEPOSIT_CUTOFF_BLOCK, "L1BlastBridge: deposits are disabled")` on every ETH and ERC-20 deposit path (lines 147, 157, 253); `cast call` of `bridgeERC20` and `bridgeETH` at block 26304374 reverts with that message. The finalize functions are unchanged. The four deposit formats stay in the descriptor because the ABI is unchanged and a reverting call only costs gas; removing them is a maintainer decision.
+- **Recipient types.** `AirdropVesting.claim(address recipient)` and `Airdrop.delegateAndClaim.delegatedRecipient` now have `types: ["eoa", "wallet", "contract"]`, because the contracts accept any non-zero address (Airdrop.sol lines 175-177, AirdropVesting.sol lines 128-130).
+- **Tests.** No new case. `calldata-L2ToL1MessagePasser.tests.json` gets DAI in `dataProvider.tokens`, so the nested "Queue DAI claim for Blast USDB" renders "795000 DAI". Expected screens updated in the OptimismPortal (4 cases), L1StandardBridge (4), L1BlastBridge (4) and L2ToL1MessagePasser (3) files; every expectation was regenerated from the Sourcify runner and read.
+- **Checks.** Lint at the registry pin (#3182): 0 errors in all 7 files; warnings: OptimismPortal 10, L1CrossDomainMessenger 4, L1StandardBridge 19, L1BlastBridge 14, L2ToL1MessagePasser 7, Airdrop 11, AirdropVesting 5 (intent length, missing formats for excluded and proxy-admin functions, "Unknown selector" from the unresolved proxy ABI). Schema validation passes. Sourcify runner 46/46, Rust runner 46/46. Index buildable.

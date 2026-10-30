@@ -1,0 +1,13 @@
+# Base Portal (OptimismPortal2) — ERC-7730 spec limitations
+
+## Native amount spent on another chain
+- **What the signer should see:** `depositTransaction._value` is ETH that the deposit transaction sends on Base (chain 8453) from the signer's L2 account to `_to`; `msg.value` is ETH that leaves Ethereum and is minted on Base. The screen should say that the first amount is an L2 amount, in the native currency of chain 8453, and that it can exceed the bridged amount because it also draws on the signer's existing L2 balance (OptimismPortal2.sol lines 546-547 and 597).
+- **What the spec cannot express:** "Field formats > amount" has no `chainId`/`chainIdPath` parameter; only "Field formats > tokenAmount" has one. An `amount` field is always rendered in the native currency of the chain of the deployment (here Ethereum). For Base the ticker is ETH on both chains, so the rendering is correct, but the spec has no way to state the chain of a native amount. On an OP Stack chain with a custom gas token the same descriptor shape would show the wrong currency.
+- **Workaround in this descriptor:** the field label carries the chain ("ETH Sent on L2") and the sentence separates the two amounts ("Bridge {@.value} to Base, send {_value} to {_to}"). The currency is correct because Base uses ETH as its native currency, which was checked on chain (`SystemConfig.isFeatureEnabled("CUSTOM_GAS_TOKEN")` is false).
+- **Proposed spec improvement:** add the optional `chainId` / `chainIdPath` parameters of `tokenAmount` to the `amount` format, with the same semantics: the wallet renders the value in the native currency of that chain.
+
+## Embedded-call spender cannot express L1-to-L2 address aliasing
+- **What the signer should see:** the account the L2 call runs as: the signer's address for an EOA, and the signer plus `0x1111000000000000000000000000000000001111` for a contract signer (OptimismPortal2.sol lines 589-592).
+- **What the spec cannot express:** `spender`/`spenderPath` ("Field formats > calldata") takes an address or a path, with no transform. `@.from` would be wrong for a Safe or another contract depositor.
+- **Workaround in this descriptor:** the deposit's `_data` uses `spenderPath: "@.from"`, which is right for EOA signers. For a contract-wallet signer the L2 call really runs as the aliased address. A constant "Note" field (a literal `value`, no `path`) tells every signer: "From a contract wallet, the deposit runs from its aliased address on Base. The L2 Call and the ETH not sent to the L2 Recipient use that address."
+- **Proposed spec improvement:** an optional `spenderTransform` such as `"l1ToL2Alias"`, applied only when the sender has code, or a container value such as `@.l2From`.
