@@ -134,6 +134,6 @@ Docs only; no descriptor change.
 
 ## 18. Review round 1 (#3172, #3173, #3174, #3176)
 
-- **Done:** every thread of marcocastignoli's first review is addressed on the PR branches: Base `a5cd30b`, Blast `086ed51`, Across `d684482` (Pendle: pending). Each report ends with "Update: review round 1". `REVIEW-ROUND-1.md` holds one reply per thread and the agent instruction to post them.
+- **Done:** every thread of marcocastignoli's first review is addressed on the PR branches: Base `a5cd30b`, Blast `086ed51`, Across `d684482`, Pendle `75a427d` and `a0b7be5`. Each report ends with "Update: review round 1". `REVIEW-ROUND-1.md` holds one reply per thread and the agent instruction to post them.
 - **To do:** post the replies, resolve the "Done" threads, append each "Update: review round 1" section to the PR description with the permalinks of item 1, and re-request the review.
 

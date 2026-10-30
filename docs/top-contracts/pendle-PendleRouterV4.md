@@ -181,3 +181,30 @@ Add this to the PR #3176 description. It supersedes the map parts of the update 
 - **Size:** the descriptor is 115 KB instead of 392 KB.
 - **Tests:** 41 cases in the testsv2 file. The 5 multicall cases with a nested `interpolatedIntent` are kept outside the file, as in the other PRs: `0x93dd22f2af45c7b331387b6292d869565934d1160013619c0ac89b133edd3fc0`, `0x6fdfc8cbfc2b6b025ddf5f3035fd55a9a5e4e120c9a717d2b4931be401f0e274`, `0x4b678dff86d212d5c5d8e6a9b2e7afbe3b8bd198d9436db3cf014a5f2eaec65c`, `0xbd63b85e79c8a3ca9ddd613a94a79643a6d119c1dc6d1e5765b891480db18d90` and `0xc7960e20aade8bcdadf8926cea1442456cd71ad1f0231ba6d9db56c8ad427d9d`.
 - **Checks:** lint 0 errors (the "Unresolved map reference" warning is gone), schema and index pass, Sourcify runner 41/41, Rust runner 41/41. The Rust runner can run this file again.
+
+## Update: review round 1
+
+Add this to the PR #3176 description. Commits `75a427d` and `a0b7be5` answer the first maintainer review. This supersedes the hidden-field sentence "Claim selectors: proceeds go to the shown `user`" for `redeemDueInterestAndRewards`.
+
+**Coverage**
+- `redeemDueInterestAndRewards`: the three claim lists are no longer hidden. `sys.[]` ("SY Rewards"), `yts.[]` ("YT Claims") and `markets.[]` ("LP Rewards") use the `tokenTicker` format, as `redeemDueInterestAndRewardsV2` already does. The intent "Claim interest and rewards for {user}" is unchanged. The label is "YT Claims" and not "YT Interest and Rewards" because the linter warns that labels over 20 characters are truncated on Ledger devices, and the V2 format already uses "YT Claims".
+
+**What the screens say**
+
+| Judgment | Source |
+|---|---|
+| Each SY in `sys` has `claimRewards(user)` called; each YT in `yts` has `redeemDueInterestAndRewards(user, true, true)` called (interest and rewards); each market in `markets` has `redeemRewards(user)` called. Proceeds go to the shown "Beneficiary". | ActionMiscV3.sol:79-89 |
+| With `input.tokenIn = address(0)`, "Amount to Pay" is native ETH and the router requires `msg.value == netTokenIn`; "Native Value Sent" equals it. | ActionBase.sol:35,38,50-51; TokenHelper.sol:11,15 |
+| Inside `multicall`, a payable action sees the outer `msg.value`, so the nested screen shows the same "Native Value Sent" as the batch. | ActionMiscV3.sol:413-420; ActionBase.sol:397-409 |
+
+**Tests**
+- 48 cases: 44 real mainnet transactions and 4 encoded.
+- New real case `swapExactTokenForPt (ETH in)`: `0xd8db82419abb1cb7652ae56a82c97867c4ad4d092f47a9e9e889e7513ed5ed92` (block 26291981, 0.5 ETH in, `swapType` ETH_WETH, `limitRouter` 0x0, no fills). Found with HyperSync: 25 of 876 `swapExactTokenForPt` calls in blocks 26,200,000–26,304,369 carried a value.
+- New encoded case `multicall (encoded, swapExactTokenForPt with ETH in)`: the same calldata wrapped in `multicall([(false, data)])`, same sender and 0.5 ETH value. HyperSync found no router `multicall` with a non-zero value among all 211,000 since deployment (blocks 19,759,272–26,304,452), so no real transaction exists.
+- The expected screens of `redeemDueInterestAndRewards` and of the two multicalls that contain it now show the claim lists. All shown tokens were already in the data provider; their symbol, name and decimals were re-read on chain.
+
+**Checks**
+- Lint at the registry pin (#3182): 0 errors, 38 warnings (37 "Unknown selector" because the linter fetches the proxy-only ABI, 1 "Display intent too long").
+- Schema and index: pass.
+- Sourcify runner: 48/48. Rust runner: 48/48.
+- Not done: claims replay of the two new cases, and device tests.

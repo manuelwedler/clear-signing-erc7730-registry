@@ -15,8 +15,7 @@ Each open PR's head is the branch `claude/nifty-euler-gwsa66-<entity>` on the fo
 
 ## Now: review round 1 on the four open PRs
 
-- One agent per PR addresses every review thread, the required changes and the suggestions, checks each claim against the verified source, re-runs the registry checks and pushes to the PR branch.
-- After the agents report: copy `registry/<entity>` to the common branch, append an "Update: review round 1" section to each report, and write `REVIEW-ROUND-1.md` with one reply per thread and the description changes.
+- Done on 2026-10-30: every thread is addressed and pushed (Base `a5cd30b`, Blast `086ed51`, Across `d684482`, Pendle `a0b7be5`), all four branches pass every registry check, the common branch is synced, each report has an "Update: review round 1" section, and `REVIEW-ROUND-1.md` has one reply per thread.
 - Then the local agent with GitHub rights: post the replies, resolve the threads that are fixed, update the four PR descriptions (fix list items in `PR-BODY-FIXES.md`), and re-request the review.
 
 ## Open items after that

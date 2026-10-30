@@ -47,6 +47,11 @@ Description: append "Update: review round 1" of `blast-OptimismPortal.md`. The t
 
 Description: append "Update: review round 1" of `across-Ethereum_SpokePool.md`. The test count is 18.
 
-## #3176 Pendle
+## #3176 Pendle, commits `75a427d` and `a0b7be5`
 
-Pending: the Pendle agent has not reported yet.
+| Thread | Kind | Reply |
+|---|---|---|
+| `calldata-PendleRouterV4.json`, `redeemDueInterestAndRewards` lists | suggestion | Done in 75a427d. `sys.[]`, `yts.[]` and `markets.[]` now render as token tickers, labelled "SY Rewards", "YT Claims" and "LP Rewards". The router calls `claimRewards(user)` on each SY (ActionMiscV3.sol:79-81), `redeemDueInterestAndRewards(user, true, true)` on each YT (:83-85) and `redeemRewards(user)` on each market (:87-89), so each list is exactly the set of positions claimed for the shown beneficiary. We used "YT Claims" instead of "YT Interest and Rewards" because the linter flags labels over 20 characters as truncated on Ledger devices, and the V2 format already uses that label. The three affected test expectations are updated. |
+| `testsv2/calldata-PendleRouterV4.tests.json`, native currency tests | suggestion | Done in a0b7be5. Added a real `swapExactTokenForPt` with `input.tokenIn = 0x0`, `netTokenIn = 0.5 ETH` and `msg.value = 0.5 ETH` (`0xd8db82419abb1cb7652ae56a82c97867c4ad4d092f47a9e9e889e7513ed5ed92`, block 26291981; `limit.limitRouter` is `0x0`, so it passes the only pin on that format), rendering "Amount to Pay 0.5 ETH" and "Native Value Sent 0.5 ETH". The multicall case wraps that same calldata with the same value and is encoded: a HyperSync scan of all 211,000 router multicalls since deployment found none with a non-zero value. Both runners render the nested action with its own "Native Value Sent 0.5 ETH", as the delegatecall keeps the outer `msg.value` (ActionMiscV3.sol:413-420). |
+
+Description: append "Update: review round 1" of `pendle-PendleRouterV4.md`. The test count is 48.
